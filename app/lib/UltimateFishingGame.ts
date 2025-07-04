@@ -86,7 +86,7 @@ export const ULTIMATE_FISH_TYPES: Record<string, UltimateFishConfig> = {
 export class Bullet extends PIXI.Container {
   public damage: number;
   public velocity: PIXI.Point;
-  private sprite: PIXI.Graphics;
+  private sprite!: PIXI.Graphics;
   private trail: PIXI.Graphics[] = [];
   
   constructor(x: number, y: number, targetX: number, targetY: number, power: number) {
@@ -205,10 +205,10 @@ export class Bullet extends PIXI.Container {
 export class UltimateFish extends PIXI.Container {
   public config: UltimateFishConfig;
   public currentHealth: number;
-  private bodyContainer: PIXI.Container;
-  private effectContainer: PIXI.Container;
-  private healthBar: PIXI.Graphics;
-  private rewardText: PIXI.Text;
+  private bodyContainer!: PIXI.Container;
+  private effectContainer!: PIXI.Container;
+  private healthBar!: PIXI.Graphics;
+  private rewardText!: PIXI.Text;
   
   // 运动参数
   public velocity: PIXI.Point;
