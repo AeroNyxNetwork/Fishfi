@@ -11,6 +11,7 @@
 
 import * as PIXI from 'pixi.js';
 import { ArtisticFishPixi, FishDNA, FishTemplate } from './ArtisticFishPixi';
+import { FishSpawnerSystem } from './FishSpawnerSystem';
 
 /**
  * Rarity configuration with probabilities and visual settings
@@ -194,6 +195,10 @@ export class NFTGalleryEngine {
   private fishes: ArtisticFishPixi[] = [];
   private selectedFish: ArtisticFishPixi | null = null;
   private fishLimit: number = 20;
+  
+  // Spawner system
+  private spawnerSystem: FishSpawnerSystem | null = null;
+  private isSpawnerMode: boolean = false;
   
   // UI elements
   private infoPanel!: PIXI.Container;
@@ -466,6 +471,15 @@ export class NFTGalleryEngine {
       () => this.toggleGallery()
     );
     this.uiLayer.addChild(this.galleryButton);
+    
+    // Spawner mode button
+    const spawnerButton = this.createButton(
+      '🎮 Fishing Mode',
+      50,
+      190,
+      () => this.toggleSpawnerMode()
+    );
+    this.uiLayer.addChild(spawnerButton);
     
     // Info panel
     this.createInfoPanel();
@@ -973,15 +987,127 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Toggles gallery view
+   * Toggles spawner mode (Fishing Master style)
    */
-  private toggleGallery(): void {
-    this.isGalleryMode = !this.isGalleryMode;
+  private toggleSpawnerMode(): void {
+    this.isSpawnerMode = !this.isSpawnerMode;
     
-    if (this.isGalleryMode) {
-      this.showGallery();
+    if (this.isSpawnerMode) {
+      // Clear existing fish
+      this.fishes.forEach(fish => {
+        this.aquarium.removeChild(fish);
+        fish.destroy();
+      });
+      this.fishes = [];
+      
+      // Hide info panel
+      this.infoPanel.visible = false;
+      
+      // Initialize spawner system
+      if (!this.spawnerSystem) {
+        this.spawnerSystem = new FishSpawnerSystem(this.app, this.aquarium);
+      }
+      
+      // Show spawner UI
+      this.showSpawnerUI();
     } else {
-      this.hideGallery();
+      // Clear spawner fish
+      if (this.spawnerSystem) {
+        this.spawnerSystem.clearAllFish();
+      }
+      
+      // Hide spawner UI
+      this.hideSpawnerUI();
+      
+      // Generate some static fish
+      this.generateInitialFish();
+    }
+  }
+  
+  /**
+   * Shows spawner mode UI
+   */
+  private showSpawnerUI(): void {
+    // Create spawner info display
+    const spawnerInfo = new PIXI.Container();
+    spawnerInfo.name = 'spawnerInfo';
+    
+    const bg = new PIXI.Graphics();
+    bg.roundRect(0, 0, 250, 100, 15);
+    bg.fill({ color: 0x000000, alpha: 0.7 });
+    bg.stroke({ color: 0xff6600, width: 2 });
+    
+    spawnerInfo.addChild(bg);
+    
+    const title = new PIXI.Text({
+      text: '🎣 Fishing Mode Active',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 18,
+        fontWeight: 'bold',
+        fill: 0xff6600
+      }
+    });
+    title.position.set(20, 15);
+    spawnerInfo.addChild(title);
+    
+    const fishCount = new PIXI.Text({
+      text: 'Fish: 0',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xffffff
+      }
+    });
+    fishCount.name = 'fishCount';
+    fishCount.position.set(20, 45);
+    spawnerInfo.addChild(fishCount);
+    
+    const difficulty = new PIXI.Text({
+      text: 'Difficulty: 1.0',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xffffff
+      }
+    });
+    difficulty.name = 'difficulty';
+    difficulty.position.set(20, 70);
+    spawnerInfo.addChild(difficulty);
+    
+    spawnerInfo.position.set(this.app.screen.width - 300, 50);
+    this.uiLayer.addChild(spawnerInfo);
+  }
+  
+  /**
+   * Hides spawner mode UI
+   */
+  private hideSpawnerUI(): void {
+    const spawnerInfo = this.uiLayer.getChildByName('spawnerInfo');
+    if (spawnerInfo) {
+      this.uiLayer.removeChild(spawnerInfo);
+      spawnerInfo.destroy({ children: true });
+    }
+  }
+  
+  /**
+   * Updates spawner UI with current stats
+   */
+  private updateSpawnerUI(): void {
+    if (!this.spawnerSystem || !this.isSpawnerMode) return;
+    
+    const spawnerInfo = this.uiLayer.getChildByName('spawnerInfo') as PIXI.Container;
+    if (!spawnerInfo) return;
+    
+    const fishCount = spawnerInfo.getChildByName('fishCount') as PIXI.Text;
+    const difficulty = spawnerInfo.getChildByName('difficulty') as PIXI.Text;
+    
+    if (fishCount) {
+      fishCount.text = `Fish: ${this.spawnerSystem.getActiveFishCount()}`;
+    }
+    
+    if (difficulty) {
+      difficulty.text = `Difficulty: ${this.spawnerSystem.getDifficulty().toFixed(1)}`;
     }
   }
 
@@ -1147,6 +1273,19 @@ export class NFTGalleryEngine {
   }
 
   /**
+   * Toggles gallery view
+   */
+  private toggleGallery(): void {
+    this.isGalleryMode = !this.isGalleryMode;
+    
+    if (this.isGalleryMode) {
+      this.showGallery();
+    } else {
+      this.hideGallery();
+    }
+  }
+  
+  /**
    * Main update loop
    */
   private update(ticker: PIXI.Ticker): void {
@@ -1163,10 +1302,17 @@ export class NFTGalleryEngine {
       this.waterOverlay.tilePosition.y += 0.1 * deltaTime;
     }
     
-    // Update fish
-    this.fishes.forEach(fish => {
-      fish.update(deltaTime);
-    });
+    // Update based on mode
+    if (this.isSpawnerMode && this.spawnerSystem) {
+      // Update spawner system
+      this.spawnerSystem.update(deltaTime);
+      this.updateSpawnerUI();
+    } else {
+      // Update static fish
+      this.fishes.forEach(fish => {
+        fish.update(deltaTime);
+      });
+    }
   }
 
   /**
