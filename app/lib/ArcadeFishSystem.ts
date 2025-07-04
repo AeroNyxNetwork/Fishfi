@@ -149,9 +149,9 @@ export const FISH_TYPES: Record<string, ArcadeFishConfig> = {
 export class ArcadePixelFish extends PIXI.Container {
   public config: ArcadeFishConfig;
   private pixelSize: number;
-  private bodySprite: PIXI.Graphics;
-  private glowSprite: PIXI.Graphics;
-  private multiplierText: PIXI.Text;
+  private bodySprite!: PIXI.Graphics;
+  private glowSprite!: PIXI.Graphics;
+  private multiplierText!: PIXI.Text;
   
   // 动画参数
   private time: number = 0;
@@ -160,7 +160,7 @@ export class ArcadePixelFish extends PIXI.Container {
   private baseY: number;
   
   // 特效
-  private particleContainer: PIXI.Container;
+  private particleContainer!: PIXI.Container;
   private isGlowing: boolean = false;
   
   constructor(config: ArcadeFishConfig, direction: 'left' | 'right' = 'right') {
