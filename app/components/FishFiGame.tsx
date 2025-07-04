@@ -30,6 +30,24 @@ export default function FishFiGame() {
     waterEffectsRef.current = waterEffects;
     
     // 创建初始鱼群
+    const createInitialFish = () => {
+      const fishTypes: FishConfig[] = [
+        { type: 'goldfish', size: 1, speed: 2, rarity: 'common' },
+        { type: 'goldfish', size: 1.2, speed: 1.8, rarity: 'rare' },
+        { type: 'shark', size: 2, speed: 3, rarity: 'epic' },
+        { type: 'angelfish', size: 1.5, speed: 1.5, rarity: 'rare' },
+        { type: 'electric', size: 1.3, speed: 2.5, rarity: 'legendary' }
+      ];
+      
+      // 创建10条初始鱼
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+          const config = fishTypes[Math.floor(Math.random() * fishTypes.length)];
+          createFish(config);
+        }, i * 200);
+      }
+    };
+    
     createInitialFish();
     
     // 启动环境效果
@@ -41,27 +59,11 @@ export default function FishFiGame() {
     // 清理
     return () => {
       renderer.destroy();
-      fishSpritesRef.current.forEach(fish => fish.destroy());
+      // 复制当前的鱼数组引用
+      const currentFishSprites = fishSpritesRef.current;
+      currentFishSprites.forEach(fish => fish.destroy());
     };
-  }, []);
-  
-  const createInitialFish = () => {
-    const fishTypes: FishConfig[] = [
-      { type: 'goldfish', size: 1, speed: 2, rarity: 'common' },
-      { type: 'goldfish', size: 1.2, speed: 1.8, rarity: 'rare' },
-      { type: 'shark', size: 2, speed: 3, rarity: 'epic' },
-      { type: 'angelfish', size: 1.5, speed: 1.5, rarity: 'rare' },
-      { type: 'electric', size: 1.3, speed: 2.5, rarity: 'legendary' }
-    ];
-    
-    // 创建10条初始鱼
-    for (let i = 0; i < 10; i++) {
-      setTimeout(() => {
-        const config = fishTypes[Math.floor(Math.random() * fishTypes.length)];
-        createFish(config);
-      }, i * 200);
-    }
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
   const createFish = (config: FishConfig) => {
     if (!rendererRef.current) return;
