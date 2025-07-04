@@ -484,10 +484,10 @@ export class FishingGameEngine {
         // 冰冻效果 - 减速所有鱼
         this.fishes.forEach(fish => {
           fish.velocity.x *= 0.3;
-          fish.tint = 0x00ccff;
+          fish.setTint(0x00ccff);
           setTimeout(() => {
             fish.velocity.x *= 3.33;
-            fish.tint = 0xffffff;
+            fish.setTint(0xffffff);
           }, 3000);
         });
         this.showMessage('冰冻效果！', 0x00ccff);
