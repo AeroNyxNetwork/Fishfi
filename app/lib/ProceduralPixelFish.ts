@@ -110,38 +110,357 @@ export class ProceduralPixelFish extends PIXI.Container {
     const shape: boolean[][] = Array(height).fill(null).map(() => Array(width).fill(false));
     const centerY = height / 2;
     
-    // 使用数学函数生成鱼形
+    // 根据鱼的类型使用不同的形状算法
+    const shapeType = this.getShapeType();
+    
+    switch (shapeType) {
+      case 'classic': // 经典鱼形（金鱼）
+        this.generateClassicShape(shape, width, height, centerY);
+        break;
+      case 'predator': // 掠食者（鲨鱼）
+        this.generatePredatorShape(shape, width, height, centerY);
+        break;
+      case 'round': // 圆形（河豚）
+        this.generateRoundShape(shape, width, height, centerY);
+        break;
+      case 'flat': // 扁平（比目鱼）
+        this.generateFlatShape(shape, width, height, centerY);
+        break;
+      case 'long': // 细长（鳗鱼）
+        this.generateLongShape(shape, width, height, centerY);
+        break;
+      case 'triangle': // 三角形（神仙鱼）
+        this.generateTriangleShape(shape, width, height, centerY);
+        break;
+      case 'exotic': // 异形（海马）
+        this.generateExoticShape(shape, width, height, centerY);
+        break;
+      default:
+        this.generateClassicShape(shape, width, height, centerY);
+    }
+    
+    // 添加鱼鳍轮廓
+    this.addFinsToShape(shape, width, height, shapeType);
+    
+    return shape;
+  }
+  
+  private getShapeType(): string {
+    // 根据基因决定形状类型
+    const ratio = this.genome.bodyRatio;
+    const heightRatio = this.genome.bodyHeight / this.genome.bodyLength;
+    
+    if (this.genome.swimStyle === 'glide' && ratio < 0.5) return 'predator';
+    if (ratio > 0.7 && heightRatio > 0.8) return 'round';
+    if (heightRatio < 0.3) return 'flat';
+    if (ratio < 0.3 && this.genome.bodyLength > 24) return 'long';
+    if (heightRatio > 1.0) return 'triangle';
+    if (this.genome.flexibility > 0.8) return 'exotic';
+    return 'classic';
+  }
+  
+  private generateClassicShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 经典鱼形 - 流线型
     for (let x = 0; x < width; x++) {
       const t = x / width;
-      
-      // 鱼身轮廓函数（可以调整以创建不同形状）
       let thickness: number;
       
-      if (t < this.genome.headSize) {
-        // 头部：抛物线
-        const headT = t / this.genome.headSize;
-        thickness = Math.sqrt(headT) * this.genome.bodyRatio;
-      } else if (t < 1 - this.genome.tailSize) {
-        // 身体：椭圆函数
-        const bodyT = (t - this.genome.headSize) / (1 - this.genome.headSize - this.genome.tailSize);
-        thickness = this.genome.bodyRatio * Math.sin(bodyT * Math.PI);
+      if (t < 0.25) {
+        // 头部 - 椭圆前端
+        thickness = Math.sin(t * Math.PI * 2) * 0.4;
+      } else if (t < 0.7) {
+        // 身体 - 饱满
+        const bodyT = (t - 0.25) / 0.45;
+        thickness = 0.4 + Math.sin(bodyT * Math.PI) * 0.3;
       } else {
-        // 尾部：反抛物线
-        const tailT = (t - (1 - this.genome.tailSize)) / this.genome.tailSize;
-        thickness = this.genome.bodyRatio * (1 - tailT * tailT) * 0.5;
+        // 尾部 - 收缩
+        const tailT = (t - 0.7) / 0.3;
+        thickness = 0.7 * (1 - tailT) * (1 - tailT * 0.5);
       }
       
-      // 填充形状
-      const halfThickness = thickness * height / 2;
+      this.fillColumn(shape, x, centerY, thickness * height / 2);
+    }
+  }
+  
+  private generatePredatorShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 鲨鱼形 - 流线型加强
+    for (let x = 0; x < width; x++) {
+      const t = x / width;
+      let thickness: number;
+      
+      if (t < 0.15) {
+        // 尖锐的头部
+        thickness = Math.pow(t / 0.15, 0.5) * 0.3;
+      } else if (t < 0.6) {
+        // 强壮的身体
+        const bodyT = (t - 0.15) / 0.45;
+        thickness = 0.3 + Math.sin(bodyT * Math.PI * 0.8) * 0.2;
+      } else {
+        // 有力的尾部
+        const tailT = (t - 0.6) / 0.4;
+        thickness = 0.5 * Math.cos(tailT * Math.PI / 2);
+      }
+      
+      this.fillColumn(shape, x, centerY, thickness * height / 2);
+    }
+    
+    // 添加背鳍
+    const dorsalStart = Math.floor(width * 0.3);
+    const dorsalEnd = Math.floor(width * 0.5);
+    for (let x = dorsalStart; x < dorsalEnd; x++) {
+      const dorsalT = (x - dorsalStart) / (dorsalEnd - dorsalStart);
+      const dorsalHeight = Math.sin(dorsalT * Math.PI) * height * 0.3;
+      for (let y = 0; y < dorsalHeight; y++) {
+        const dorsalY = Math.floor(centerY - height/2 - y);
+        if (dorsalY >= 0) shape[dorsalY][x] = true;
+      }
+    }
+  }
+  
+  private generateRoundShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 河豚形 - 近似圆形
+    const radius = Math.min(width, height) / 2;
+    const centerX = width / 2;
+    
+    for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const distance = Math.abs(y - centerY);
-        if (distance <= halfThickness) {
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 椭圆形状
+        const adjustedDistance = Math.sqrt(
+          Math.pow(dx / (width / 2), 2) + 
+          Math.pow(dy / (height / 2), 2)
+        );
+        
+        if (adjustedDistance < 0.9) {
           shape[y][x] = true;
         }
       }
     }
     
-    return shape;
+    // 添加小尾巴
+    const tailStart = Math.floor(width * 0.8);
+    for (let x = tailStart; x < width; x++) {
+      const tailT = (x - tailStart) / (width - tailStart);
+      const tailHeight = (1 - tailT) * height * 0.3;
+      this.fillColumn(shape, x, centerY, tailHeight);
+    }
+  }
+  
+  private generateFlatShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 比目鱼形 - 扁平椭圆
+    for (let x = 0; x < width; x++) {
+      const t = x / width;
+      
+      // 椭圆方程
+      const a = width / 2;
+      const b = height / 3; // 更扁
+      const centerX = width / 2;
+      
+      // 计算椭圆边界
+      const dx = Math.abs(x - centerX);
+      if (dx < a) {
+        const thickness = b * Math.sqrt(1 - (dx / a) * (dx / a));
+        this.fillColumn(shape, x, centerY, thickness);
+      }
+    }
+  }
+  
+  private generateLongShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 鳗鱼形 - 细长蛇形
+    for (let x = 0; x < width; x++) {
+      const t = x / width;
+      
+      // 波浪形身体
+      const waveOffset = Math.sin(t * Math.PI * 4) * height * 0.1;
+      const thickness = 0.3 + Math.sin(t * Math.PI) * 0.1;
+      
+      const adjustedCenterY = centerY + waveOffset;
+      this.fillColumn(shape, x, adjustedCenterY, thickness * height / 2);
+    }
+  }
+  
+  private generateTriangleShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 神仙鱼形 - 三角形
+    for (let x = 0; x < width; x++) {
+      const t = x / width;
+      let topY: number, bottomY: number;
+      
+      if (t < 0.6) {
+        // 前部扩张
+        const expandT = t / 0.6;
+        topY = centerY - expandT * height / 2;
+        bottomY = centerY + expandT * height / 2;
+      } else {
+        // 后部收缩
+        const contractT = (t - 0.6) / 0.4;
+        topY = centerY - (1 - contractT) * height / 2;
+        bottomY = centerY + (1 - contractT) * height / 2;
+      }
+      
+      for (let y = Math.floor(topY); y <= Math.floor(bottomY); y++) {
+        if (y >= 0 && y < height) {
+          shape[y][x] = true;
+        }
+      }
+    }
+  }
+  
+  private generateExoticShape(shape: boolean[][], width: number, height: number, centerY: number) {
+    // 海马形 - S形曲线
+    for (let x = 0; x < width; x++) {
+      const t = x / width;
+      
+      // S形曲线
+      let curveY: number;
+      if (t < 0.5) {
+        curveY = centerY - Math.sin(t * Math.PI) * height * 0.3;
+      } else {
+        curveY = centerY + Math.sin((t - 0.5) * Math.PI) * height * 0.3;
+      }
+      
+      // 变化的厚度
+      let thickness: number;
+      if (t < 0.3) {
+        thickness = 0.5 + t;
+      } else {
+        thickness = 0.8 - t * 0.5;
+      }
+      
+      this.fillColumn(shape, x, curveY, thickness * height / 3);
+    }
+    
+    // 添加特征性的卷曲尾巴
+    const tailX = Math.floor(width * 0.8);
+    for (let i = 0; i < 5; i++) {
+      const angle = i * Math.PI / 4;
+      const tx = tailX + Math.cos(angle) * 3;
+      const ty = centerY + height/3 + Math.sin(angle) * 3;
+      if (tx < width && ty < height && ty >= 0) {
+        shape[Math.floor(ty)][Math.floor(tx)] = true;
+      }
+    }
+  }
+  
+  private fillColumn(shape: boolean[][], x: number, centerY: number, halfHeight: number) {
+    const top = Math.floor(centerY - halfHeight);
+    const bottom = Math.floor(centerY + halfHeight);
+    
+    for (let y = top; y <= bottom; y++) {
+      if (y >= 0 && y < shape.length && x >= 0 && x < shape[0].length) {
+        shape[y][x] = true;
+      }
+    }
+  }
+  
+  private addFinsToShape(shape: boolean[][], width: number, height: number, shapeType: string) {
+    // 根据鱼的类型添加不同的鱼鳍
+    switch (shapeType) {
+      case 'predator':
+        // 鲨鱼 - 大背鳍已在形状中添加
+        break;
+        
+      case 'round':
+        // 河豚 - 小圆鳍
+        this.addSmallRoundFins(shape, width, height);
+        break;
+        
+      case 'triangle':
+        // 神仙鱼 - 长飘逸的鳍
+        this.addLongFins(shape, width, height);
+        break;
+        
+      case 'exotic':
+        // 海马 - 背部波浪鳍
+        this.addWavyDorsalFin(shape, width, height);
+        break;
+        
+      default:
+        // 标准鳍
+        this.addStandardFins(shape, width, height);
+    }
+  }
+  
+  private addSmallRoundFins(shape: boolean[][], width: number, height: number) {
+    // 在身体周围添加小圆鳍
+    const centerY = height / 2;
+    const finPositions = [
+      { x: width * 0.3, y: centerY - height * 0.3 },
+      { x: width * 0.3, y: centerY + height * 0.3 },
+      { x: width * 0.6, y: centerY }
+    ];
+    
+    finPositions.forEach(pos => {
+      for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = -2; dy <= 2; dy++) {
+          const x = Math.floor(pos.x + dx);
+          const y = Math.floor(pos.y + dy);
+          if (x >= 0 && x < width && y >= 0 && y < height) {
+            if (dx * dx + dy * dy <= 4) {
+              shape[y][x] = true;
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  private addLongFins(shape: boolean[][], width: number, height: number) {
+    // 添加长飘逸的鳍
+    const centerY = height / 2;
+    
+    // 上下长鳍
+    for (let x = width * 0.2; x < width * 0.7; x++) {
+      const finT = (x - width * 0.2) / (width * 0.5);
+      const finHeight = Math.sin(finT * Math.PI) * height * 0.2;
+      
+      // 上鳍
+      for (let y = 0; y < finHeight; y++) {
+        const fy = Math.floor(centerY - height/2 - y);
+        if (fy >= 0) shape[fy][Math.floor(x)] = true;
+      }
+      
+      // 下鳍
+      for (let y = 0; y < finHeight; y++) {
+        const fy = Math.floor(centerY + height/2 + y);
+        if (fy < height) shape[fy][Math.floor(x)] = true;
+      }
+    }
+  }
+  
+  private addWavyDorsalFin(shape: boolean[][], width: number, height: number) {
+    // 波浪形背鳍
+    const startX = Math.floor(width * 0.1);
+    const endX = Math.floor(width * 0.7);
+    
+    for (let x = startX; x < endX; x++) {
+      const t = (x - startX) / (endX - startX);
+      const wave = Math.sin(t * Math.PI * 3) * 2;
+      const finHeight = 3 + wave;
+      
+      for (let y = 0; y < finHeight; y++) {
+        const fy = Math.floor(height / 2 - height / 2 - y);
+        if (fy >= 0) shape[fy][x] = true;
+      }
+    }
+  }
+  
+  private addStandardFins(shape: boolean[][], width: number, height: number) {
+    // 标准背鳍和腹鳍
+    const dorsalStart = Math.floor(width * 0.4);
+    const dorsalEnd = Math.floor(width * 0.6);
+    
+    for (let x = dorsalStart; x < dorsalEnd; x++) {
+      const t = (x - dorsalStart) / (dorsalEnd - dorsalStart);
+      const finHeight = Math.sin(t * Math.PI) * 3;
+      
+      for (let y = 0; y < finHeight; y++) {
+        const fy = Math.floor(height / 2 - height / 2 - y);
+        if (fy >= 0) shape[fy][x] = true;
+      }
+    }
   }
   
   private applyPattern(ctx: CanvasRenderingContext2D, shape: boolean[][], width: number, height: number) {
