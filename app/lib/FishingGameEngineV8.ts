@@ -388,7 +388,7 @@ export class FishingGameEngineV8 {
       .circle(0, -60, 15)
       .fill({ color: glowColor, alpha: 0.6 });
     
-    powerGlow.filters = [new PIXI.BlurFilter({ strength: 10 })];
+          powerGlow.filters = [new PIXI.BlurFilter({ strength: 10 })];
     
     this.cannon.addChild(base);
     this.cannon.addChild(barrel);
