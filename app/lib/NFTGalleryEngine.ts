@@ -699,7 +699,10 @@ export class NFTGalleryEngine {
       // Find clicked fish
       for (const fish of this.fishes) {
         const bounds = fish.getBounds();
-        if (bounds.contains(point.x, point.y)) {
+        if (point.x >= bounds.x && 
+            point.x <= bounds.x + bounds.width &&
+            point.y >= bounds.y && 
+            point.y <= bounds.y + bounds.height) {
           this.selectFish(fish);
           break;
         }
@@ -1155,8 +1158,8 @@ export class NFTGalleryEngine {
       const bounds = fish.getBounds();
       const margin = 50;
       
-      if (bounds.left < -margin || bounds.right > this.app.screen.width + margin ||
-          bounds.top < -margin || bounds.bottom > this.app.screen.height + margin) {
+      if (bounds.x < -margin || bounds.x + bounds.width > this.app.screen.width + margin ||
+          bounds.y < -margin || bounds.y + bounds.height > this.app.screen.height + margin) {
         // Change direction when hitting boundaries
         const centerX = this.app.screen.width / 2;
         const centerY = this.app.screen.height / 2;
