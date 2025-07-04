@@ -938,7 +938,8 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     // Update displacement
     if (this.displacementFilter) {
-      this.displacementFilter.scale = 5 + Math.sin(this.shaderTime * 0.001) * 2;
+      (this.displacementFilter as any).scale.x = 5 + Math.sin(this.shaderTime * 0.001) * 2;
+      (this.displacementFilter as any).scale.y = 5 + Math.sin(this.shaderTime * 0.001) * 2;
     }
     
     // Update cosmic starfield
@@ -963,16 +964,18 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Brighten
     if (!this.overlaySprite) {
       const overlay = new PIXI.Graphics();
-      overlay.beginFill(0xffffff, 0.2);
-      overlay.drawRect(-this.baseSize, -this.baseSize, this.baseSize * 2, this.baseSize * 2);
-      overlay.endFill();
+      overlay.rect(-this.baseSize, -this.baseSize, this.baseSize * 2, this.baseSize * 2);
+      overlay.fill({ color: 0xffffff, alpha: 0.2 });
       
       this.overlaySprite = new PIXI.Sprite(
-        this.fishContainer.generateTexture()
+        PIXI.Texture.WHITE
       );
+      this.overlaySprite.width = this.baseSize * 2;
+      this.overlaySprite.height = this.baseSize * 2;
       this.overlaySprite.anchor.set(0.5);
       this.overlaySprite.blendMode = 'add';
       this.overlaySprite.alpha = 0;
+      this.overlaySprite.tint = 0xffffff;
       
       this.fishContainer.addChild(this.overlaySprite);
     }
