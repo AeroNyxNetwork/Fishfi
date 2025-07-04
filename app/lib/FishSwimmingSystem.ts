@@ -116,13 +116,13 @@ interface ScreenBounds {
    * Spawn event definition
    */
 interface SpawnEvent {
-    time: number;
-    category: FishCategory;
-    species: string;
-    count: number;
-    formation?: FormationType;
-    behavior: Partial<FishBehavior>;
-    entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
+  time: number;
+  category: FishCategory;
+  species: string;
+  count: number;
+  formation?: FormationType;
+  behavior: Partial<FishBehavior>;
+  entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
 }
 /**
  * Main fish swimming system
