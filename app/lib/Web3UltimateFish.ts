@@ -12,7 +12,7 @@ export class Web3UltimateFish extends PIXI.Container {
   
   // Movement properties
   public velocity: PIXI.Point;
-  private movementPattern: 'sine' | 'bezier' | 'circular' | 'erratic';
+  private movementPattern: 'sine' | 'bezier' | 'circular' | 'erratic' = 'sine';
   private pathPoints: PIXI.Point[] = [];
   private pathProgress: number = 0;
   
