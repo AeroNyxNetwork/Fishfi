@@ -439,9 +439,9 @@ export class UltimateFish extends PIXI.Container {
     if (this.config.rarity === 'mythic') {
       // 彩虹色变
       const hue = (this.time * 2) % 360;
-      if (this.bodyContainer.children[0]) {
-        // After
-          (this.bodyContainer.children[0] as PIXI.Sprite).tint = this.hslToHex(hue, 70, 50);
+      const firstChild = this.bodyContainer.children[0];
+      if (firstChild && 'tint' in firstChild) {
+        (firstChild as PIXI.Sprite).tint = this.hslToHex(hue, 70, 50);
       }
     }
   }
@@ -468,18 +468,23 @@ export class UltimateFish extends PIXI.Container {
   }
   
   private flash() {
-    const originalTint = this.bodyContainer.children[0].tint;
-    this.bodyContainer.children[0].tint = 0xffffff;
+    const firstChild = this.bodyContainer.children[0];
+    if (!firstChild || !('tint' in firstChild)) return;
+    
+    const sprite = firstChild as PIXI.Sprite;
+    const originalTint = sprite.tint;
+    sprite.tint = 0xffffff;
     
     setTimeout(() => {
-      this.bodyContainer.children[0].tint = originalTint;
+      sprite.tint = originalTint;
     }, 100);
   }
   
   // 设置鱼的色调
   public setTint(color: number) {
-    if (this.bodyContainer && this.bodyContainer.children[0]) {
-      this.bodyContainer.children[0].tint = color;
+    const firstChild = this.bodyContainer?.children[0];
+    if (firstChild && 'tint' in firstChild) {
+      (firstChild as PIXI.Sprite).tint = color;
     }
   }
   
