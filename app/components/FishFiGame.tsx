@@ -23,7 +23,7 @@ export default function FishFiGame() {
     rendererRef.current = renderer;
     
     // 创建初始鱼群，展示不同特征
-    const fishTypes = ['goldfish', 'shark', 'pufferfish', 'angelfish', 'neon'];
+    const fishTypes = ['goldfish', 'shark', 'pufferfish', 'angelfish', 'neon', 'eel', 'seahorse', 'clownfish'];
     fishTypes.forEach((type, index) => {
       setTimeout(() => {
         renderer.createSpecialFish(type);
@@ -133,21 +133,38 @@ export default function FishFiGame() {
         {/* 控制面板 */}
         <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
           <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 max-w-4xl mx-auto">
-            {/* 鱼类型选择 */}
-            <div className="flex justify-center gap-3 mb-4">
-              {['random', 'goldfish', 'shark', 'pufferfish', 'angelfish', 'neon'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => setSelectedFishType(type)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 ${
-                    selectedFishType === type
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/30'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
+            {/* 鱼类型选择 - 两行显示 */}
+            <div className="mb-4">
+              <div className="flex justify-center gap-2 mb-2">
+                {['random', 'goldfish', 'shark', 'pufferfish', 'angelfish', 'neon'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedFishType(type)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all transform hover:scale-105 ${
+                      selectedFishType === type
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-center gap-2">
+                {['eel', 'seahorse', 'flatfish', 'swordfish', 'clownfish'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedFishType(type)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all transform hover:scale-105 ${
+                      selectedFishType === type
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
             
             {/* 生成按钮 */}
@@ -167,17 +184,24 @@ export default function FishFiGame() {
         {/* 特征说明 */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded-lg p-4 pointer-events-auto max-w-xs">
           <h3 className="text-cyan-400 font-bold mb-2">鱼类特征</h3>
-          <div className="text-xs space-y-2 text-gray-300">
+          <div className="text-xs space-y-1 text-gray-300 max-h-96 overflow-y-auto">
             <div><span className="text-yellow-400">金鱼:</span> 圆润体型，渐变色，正弦游动</div>
-            <div><span className="text-blue-400">鲨鱼:</span> 流线型，滑翔游动，大尾鳍</div>
+            <div><span className="text-blue-400">鲨鱼:</span> 流线型，大背鳍，滑翔游动</div>
             <div><span className="text-orange-400">河豚:</span> 球形，爆发游动，斑点图案</div>
-            <div><span className="text-purple-400">神仙鱼:</span> 高身形，条纹，Z字游动</div>
-            <div><span className="text-green-400">霓虹鱼:</span> 小巧，发光，快速游动</div>
+            <div><span className="text-purple-400">神仙鱼:</span> 三角形，长鳍，Z字游动</div>
+            <div><span className="text-green-400">霓虹鱼:</span> 小巧发光，快速游动</div>
+            <div><span className="text-teal-400">鳗鱼:</span> 细长蛇形，波浪游动</div>
+            <div><span className="text-pink-400">海马:</span> S形身体，直立游动</div>
+            <div><span className="text-yellow-600">比目鱼:</span> 扁平椭圆，贴底滑行</div>
+            <div><span className="text-indigo-400">剑鱼:</span> 长吻流线，冲刺游动</div>
+            <div><span className="text-red-400">小丑鱼:</span> 橙白条纹，活泼游动</div>
           </div>
           
           <h3 className="text-cyan-400 font-bold mt-4 mb-2">交互提示</h3>
           <div className="text-xs text-gray-300">
-            点击画面创建涟漪和气泡效果
+            • 点击画面创建涟漪和气泡<br/>
+            • 每种鱼都有独特的形状算法<br/>
+            • 观察不同的游泳风格
           </div>
         </div>
       </div>
