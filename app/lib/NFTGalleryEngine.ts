@@ -72,6 +72,7 @@ const RARITY_CONFIG = {
  * Fish template definitions
  */
 const FISH_TEMPLATES: Record<string, FishTemplate> = {
+  // Using the species catalog - import a few key species for backward compatibility
   goldfish: {
     name: 'goldfish',
     displayName: 'Golden Koi',
@@ -91,7 +92,7 @@ const FISH_TEMPLATES: Record<string, FishTemplate> = {
   },
   cosmicWhale: {
     name: 'cosmicWhale',
-    displayName: 'Cosmic Whale',
+    displayName: 'Cosmic Leviathan',
     description: 'Born from stardust',
     bodyShape: 'massive',
     baseColors: {
@@ -177,6 +178,115 @@ const FISH_TEMPLATES: Record<string, FishTemplate> = {
       tailType: 'legendary',
       finStyle: 'ancient',
       special: ['scales_shimmer', 'fire_breath', 'whiskers']
+    }
+  },
+  // New species additions
+  angelfish: {
+    name: 'angelfish',
+    displayName: 'Royal Angel',
+    description: 'Majestic triangular beauty',
+    bodyShape: 'diamond',
+    baseColors: {
+      primary: '#FFE4B5',
+      secondary: '#FF8C00',
+      accent: '#000000'
+    },
+    features: {
+      bodyRatio: { w: 0.8, h: 1.5 },
+      headCurve: 'angular',
+      tailType: 'trailing',
+      finStyle: 'elongated',
+      special: ['vertical_stripes', 'crown_fins']
+    }
+  },
+  clownfish: {
+    name: 'clownfish',
+    displayName: 'Coral Jester',
+    description: 'Playful orange with white bands',
+    bodyShape: 'oval',
+    baseColors: {
+      primary: '#FF4500',
+      secondary: '#FFFFFF',
+      accent: '#000000'
+    },
+    features: {
+      bodyRatio: { w: 1.0, h: 0.8 },
+      headCurve: 'blunt',
+      tailType: 'round',
+      finStyle: 'standard',
+      special: ['white_bands', 'wiggle_swim']
+    }
+  },
+  butterflyfish: {
+    name: 'butterflyfish',
+    displayName: 'Painted Butterfly',
+    description: 'Delicate patterns like wings',
+    bodyShape: 'compressed',
+    baseColors: {
+      primary: '#FFFF00',
+      secondary: '#000000',
+      accent: '#FFFFFF'
+    },
+    features: {
+      bodyRatio: { w: 0.9, h: 1.1 },
+      headCurve: 'pointed',
+      tailType: 'fan',
+      finStyle: 'delicate',
+      special: ['eye_spot', 'chevron_pattern']
+    }
+  },
+  anglerfish: {
+    name: 'anglerfish',
+    displayName: 'Abyssal Angler',
+    description: 'Lure glowing in darkness',
+    bodyShape: 'bulbous',
+    baseColors: {
+      primary: '#2F4F4F',
+      secondary: '#000000',
+      accent: '#00FF00'
+    },
+    features: {
+      bodyRatio: { w: 1.5, h: 1.3 },
+      headCurve: 'massive_jaw',
+      tailType: 'small',
+      finStyle: 'stubby',
+      special: ['bioluminescent_lure', 'giant_mouth', 'scary_teeth']
+    }
+  },
+  seahorse: {
+    name: 'seahorse',
+    displayName: 'Ocean Knight',
+    description: 'Armored elegance',
+    bodyShape: 'serpentine',
+    baseColors: {
+      primary: '#FF69B4',
+      secondary: '#FFB6C1',
+      accent: '#FF1493'
+    },
+    features: {
+      bodyRatio: { w: 0.5, h: 2.0 },
+      headCurve: 'horse',
+      tailType: 'prehensile',
+      finStyle: 'dorsal_only',
+      special: ['armor_plates', 'curled_tail', 'upright_swim']
+    }
+  },
+  pufferfish: {
+    name: 'pufferfish',
+    displayName: 'Spiky Balloon',
+    description: 'Inflatable defense',
+    bodyShape: 'round',
+    baseColors: {
+      primary: '#F0E68C',
+      secondary: '#8B4513',
+      accent: '#000000'
+    },
+    features: {
+      bodyRatio: { w: 1.0, h: 1.0 },
+      headCurve: 'round',
+      tailType: 'small',
+      finStyle: 'tiny',
+      special: ['inflatable', 'spikes', 'toxic', 'googly_eyes']
     }
   }
 };
@@ -848,9 +958,9 @@ export class NFTGalleryEngine {
    * Generates fish DNA
    */
   private generateFishDNA(): FishDNA {
-    // Select random template
-    const templateKeys = Object.keys(FISH_TEMPLATES);
-    const templateKey = templateKeys[Math.floor(Math.random() * templateKeys.length)];
+    // Select random template with more variety
+    const allSpecies = Object.keys(FISH_TEMPLATES);
+    const templateKey = allSpecies[Math.floor(Math.random() * allSpecies.length)];
     const template = FISH_TEMPLATES[templateKey];
     
     // Calculate rarity
@@ -872,18 +982,28 @@ export class NFTGalleryEngine {
       if (['legendary', 'mythic', 'cosmic'].includes(rarity)) {
         colors.glow = '#' + RARITY_CONFIG[rarity].glow.toString(16).padStart(6, '0');
       }
+      
+      if (['goldfish', 'goldenLuck'].includes(templateKey)) {
+        colors.shimmer = '#FFD700';
+      }
     }
     
-    // Generate pattern
+    // Generate pattern - more variety
     const patterns = [
       'stripes', 'dots', 'scales', 'waves', 'spirals',
       'fractals', 'circuits', 'crystals', 'stars', 'void',
-      'gradient', 'noise', 'geometric', 'organic', 'mystic'
+      'gradient', 'noise', 'geometric', 'organic', 'mystic',
+      'chevron', 'hexagonal', 'spiral'
     ];
     const pattern = patterns[Math.floor(Math.random() * patterns.length)];
     
-    // Generate traits based on rarity
+    // Generate traits based on template and rarity
     const traits = this.generateTraits(template, rarity);
+    
+    // Add species-specific traits
+    if (template.features.special) {
+      traits.push(...template.features.special);
+    }
     
     // Generate mutations
     const mutations = this.generateMutations(rarity);
@@ -895,7 +1015,7 @@ export class NFTGalleryEngine {
       pattern,
       colors,
       rarity,
-      traits,
+      traits: [...new Set(traits)], // Remove duplicates
       mutations,
       genes: {
         size: 0.8 + Math.random() * 0.4,
