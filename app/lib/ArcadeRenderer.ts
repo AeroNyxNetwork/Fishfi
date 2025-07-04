@@ -3,10 +3,10 @@ import { ArcadePixelFish, FISH_TYPES, ArcadeFishConfig } from './ArcadeFishSyste
 
 export class ArcadeRenderer {
   public app: PIXI.Application;
-  private mainContainer: PIXI.Container;
-  private backgroundContainer: PIXI.Container;
-  private fishContainer: PIXI.Container;
-  private uiContainer: PIXI.Container;
+  private mainContainer!: PIXI.Container;
+  private backgroundContainer!: PIXI.Container;
+  private fishContainer!: PIXI.Container;
+  private uiContainer!: PIXI.Container;
   
   // 鱼群管理
   private activeFishes: ArcadePixelFish[] = [];
