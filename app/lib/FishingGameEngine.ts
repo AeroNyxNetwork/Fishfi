@@ -566,7 +566,7 @@ export class FishingGameEngine {
         }
       });
       
-      if (nearestFish) {
+      if (nearestFish !== null) {
         // 绘制闪电
         lightning.moveTo(currentPos.x, currentPos.y);
         lightning.lineTo(nearestFish.x, nearestFish.y);
