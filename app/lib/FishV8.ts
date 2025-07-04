@@ -15,9 +15,8 @@ export class FishV8 extends PIXI.Container {
   public config: FishConfig;
   public currentHealth: number;
   private fishSprite: PIXI.Sprite;
-  private nameLabel: PIXI.Text;
-  private healthBar: PIXI.Graphics;
-  private glowSprite?: PIXI.Sprite;
+  private nameLabel!: PIXI.Text;
+  private healthBar?: PIXI.Graphics;
   
   // Simple movement
   public velocity: { x: number; y: number };
@@ -53,13 +52,8 @@ export class FishV8 extends PIXI.Container {
     }
     
     // Add components
-    if (this.glowSprite) {
-      this.addChild(this.glowSprite);
-    }
     this.addChild(this.fishSprite);
-    if (this.nameLabel) {
-      this.addChild(this.nameLabel);
-    }
+    this.addChild(this.nameLabel);
     if (this.healthBar) {
       this.addChild(this.healthBar);
     }
@@ -78,7 +72,7 @@ export class FishV8 extends PIXI.Container {
   }
   
   private applyRarityTint(): void {
-    const tints = {
+    const tints: Record<string, number> = {
       common: 0xffffff,
       rare: 0x4da6ff,
       epic: 0xcc66ff,
@@ -152,59 +146,23 @@ export class FishV8 extends PIXI.Container {
   }
   
   private createGlowEffect(): void {
-    // Create a glow texture
-    const glowGraphics = new PIXI.Graphics();
-    const glowRadius = 50 * this.config.size;
-    
-    // Create radial gradient effect
-    const colors = {
-      rare: 0x4da6ff,
-      epic: 0xcc66ff,
-      legendary: 0xffcc00,
-      mythic: 0xff66ff
-    };
-    
-    const color = colors[this.config.rarity] || 0xffffff;
-    
-    // Draw multiple circles for glow effect
-    for (let i = 5; i > 0; i--) {
-      const alpha = 0.1 * (i / 5);
-      const radius = glowRadius * (i / 5);
+    // For now, we'll add the glow effect directly to the fish sprite
+    if (this.config.rarity !== 'common') {
+      const glowStrength: Record<string, number> = {
+        rare: 5,
+        epic: 8,
+        legendary: 12,
+        mythic: 15
+      };
       
-      glowGraphics
-        .circle(0, 0, radius)
-        .fill({ color, alpha });
+      // Apply glow filter directly to the fish sprite
+      this.fishSprite.filters = [
+        new PIXI.BlurFilter({
+          strength: glowStrength[this.config.rarity] || 5,
+          quality: 4
+        })
+      ];
     }
-    
-    // Create texture from graphics
-    const bounds = glowGraphics.getLocalBounds();
-    const renderTexture = PIXI.RenderTexture.create({
-      width: bounds.width,
-      height: bounds.height
-    });
-    
-    // Render to texture
-    const app = PIXI.Application.shared;
-    if (app && app.renderer) {
-      app.renderer.render({
-        container: glowGraphics,
-        target: renderTexture,
-        transform: new PIXI.Matrix().translate(-bounds.x, -bounds.y)
-      });
-    }
-    
-    this.glowSprite = new PIXI.Sprite({
-      texture: renderTexture,
-      anchor: 0.5
-    });
-    
-    // Apply blur filter for softer glow
-    this.glowSprite.filters = [
-      new PIXI.BlurFilter({
-        strength: 10,
-        quality: 4
-      })
-    ];
   }
   
   public update(deltaTime: number): void {
