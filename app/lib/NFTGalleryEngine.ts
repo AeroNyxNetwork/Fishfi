@@ -833,6 +833,7 @@ export class NFTGalleryEngine {
    * Generates initial fish
    */
   private generateInitialFish(): void {
+    // Start in normal gallery mode
     for (let i = 0; i < 5; i++) {
       setTimeout(() => this.generateNewFish(), i * 200);
     }
@@ -1308,9 +1309,19 @@ export class NFTGalleryEngine {
       this.spawnerSystem.update(deltaTime);
       this.updateSpawnerUI();
     } else {
-      // Update static fish
+      // Update static fish with swimming behavior
       this.fishes.forEach(fish => {
         fish.update(deltaTime);
+        
+        // Wrap around the screen (like official example)
+        const padding = 100;
+        const width = this.app.screen.width;
+        const height = this.app.screen.height;
+        
+        if (fish.x > width + padding) fish.x -= width + padding * 2;
+        if (fish.x < -padding) fish.x += width + padding * 2;
+        if (fish.y > height + padding) fish.y -= height + padding * 2;
+        if (fish.y < -padding) fish.y += height + padding * 2;
       });
     }
   }
