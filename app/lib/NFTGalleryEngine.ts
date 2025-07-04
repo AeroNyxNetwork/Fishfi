@@ -11,7 +11,7 @@
 
 import * as PIXI from 'pixi.js';
 import { ArtisticFishPixi, FishDNA, FishTemplate } from './ArtisticFishPixi';
-import { FishSpawnerSystem } from './FishSpawnerSystem';
+import { FishSwimmingSystem } from './FishSwimmingSystem';
 
 /**
  * Rarity configuration with probabilities and visual settings
@@ -196,9 +196,9 @@ export class NFTGalleryEngine {
   private selectedFish: ArtisticFishPixi | null = null;
   private fishLimit: number = 20;
   
-  // Spawner system
-  private spawnerSystem: FishSpawnerSystem | null = null;
-  private isSpawnerMode: boolean = false;
+  // Swimming system
+  private swimmingSystem: FishSwimmingSystem | null = null;
+  private isSwimmingMode: boolean = true; // Start with swimming enabled
   
   // UI elements
   private infoPanel!: PIXI.Container;
@@ -251,8 +251,13 @@ export class NFTGalleryEngine {
     // Handle resize
     window.addEventListener('resize', this.onResize.bind(this));
     
-    // Generate initial fish
-    this.generateInitialFish();
+    // Initialize swimming system
+    this.swimmingSystem = new FishSwimmingSystem(this.app, this.aquarium);
+    
+    // Start with swimming mode
+    setTimeout(() => {
+      this.showSwimmingUI();
+    }, 1000);
   }
 
   /**
@@ -473,13 +478,13 @@ export class NFTGalleryEngine {
     this.uiLayer.addChild(this.galleryButton);
     
     // Spawner mode button
-    const spawnerButton = this.createButton(
-      '🎮 Fishing Mode',
+    const swimmingButton = this.createButton(
+      '🎮 Toggle Swimming',
       50,
       190,
-      () => this.toggleSpawnerMode()
+      () => this.toggleSwimmingMode()
     );
-    this.uiLayer.addChild(spawnerButton);
+    this.uiLayer.addChild(swimmingButton);
     
     // Info panel
     this.createInfoPanel();
@@ -833,7 +838,7 @@ export class NFTGalleryEngine {
    * Generates initial fish
    */
   private generateInitialFish(): void {
-    // Start in normal gallery mode
+    // Start in normal gallery mode with static fish
     for (let i = 0; i < 5; i++) {
       setTimeout(() => this.generateNewFish(), i * 200);
     }
@@ -988,13 +993,13 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Toggles spawner mode (Fishing Master style)
+   * Toggles swimming mode (Fish Master style)
    */
-  private toggleSpawnerMode(): void {
-    this.isSpawnerMode = !this.isSpawnerMode;
+  private toggleSwimmingMode(): void {
+    this.isSwimmingMode = !this.isSwimmingMode;
     
-    if (this.isSpawnerMode) {
-      // Clear existing fish
+    if (this.isSwimmingMode) {
+      // Clear static fish
       this.fishes.forEach(fish => {
         this.aquarium.removeChild(fish);
         fish.destroy();
@@ -1004,21 +1009,16 @@ export class NFTGalleryEngine {
       // Hide info panel
       this.infoPanel.visible = false;
       
-      // Initialize spawner system
-      if (!this.spawnerSystem) {
-        this.spawnerSystem = new FishSpawnerSystem(this.app, this.aquarium);
-      }
-      
-      // Show spawner UI
-      this.showSpawnerUI();
+      // Show swimming UI
+      this.showSwimmingUI();
     } else {
-      // Clear spawner fish
-      if (this.spawnerSystem) {
-        this.spawnerSystem.clearAllFish();
+      // Clear swimming fish
+      if (this.swimmingSystem) {
+        this.swimmingSystem.clearAllFish();
       }
       
-      // Hide spawner UI
-      this.hideSpawnerUI();
+      // Hide swimming UI
+      this.hideSwimmingUI();
       
       // Generate some static fish
       this.generateInitialFish();
@@ -1026,34 +1026,34 @@ export class NFTGalleryEngine {
   }
   
   /**
-   * Shows spawner mode UI
+   * Shows swimming mode UI
    */
-  private showSpawnerUI(): void {
-    // Create spawner info display
-    const spawnerInfo = new PIXI.Container();
-    spawnerInfo.name = 'spawnerInfo';
+  private showSwimmingUI(): void {
+    // Create swimming info display
+    const swimmingInfo = new PIXI.Container();
+    swimmingInfo.name = 'swimmingInfo';
     
     const bg = new PIXI.Graphics();
-    bg.roundRect(0, 0, 250, 100, 15);
+    bg.roundRect(0, 0, 280, 120, 15);
     bg.fill({ color: 0x000000, alpha: 0.7 });
-    bg.stroke({ color: 0xff6600, width: 2 });
+    bg.stroke({ color: 0x00ffff, width: 2 });
     
-    spawnerInfo.addChild(bg);
+    swimmingInfo.addChild(bg);
     
     const title = new PIXI.Text({
-      text: '🎣 Fishing Mode Active',
+      text: '🌊 Fish Master Mode',
       style: {
         fontFamily: 'Arial',
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
-        fill: 0xff6600
+        fill: 0x00ffff
       }
     });
     title.position.set(20, 15);
-    spawnerInfo.addChild(title);
+    swimmingInfo.addChild(title);
     
     const fishCount = new PIXI.Text({
-      text: 'Fish: 0',
+      text: 'Active Fish: 0',
       style: {
         fontFamily: 'Arial',
         fontSize: 16,
@@ -1061,54 +1061,55 @@ export class NFTGalleryEngine {
       }
     });
     fishCount.name = 'fishCount';
-    fishCount.position.set(20, 45);
-    spawnerInfo.addChild(fishCount);
+    fishCount.position.set(20, 50);
+    swimmingInfo.addChild(fishCount);
     
-    const difficulty = new PIXI.Text({
-      text: 'Difficulty: 1.0',
+    const bossStatus = new PIXI.Text({
+      text: 'Boss: Not Active',
       style: {
         fontFamily: 'Arial',
         fontSize: 16,
-        fill: 0xffffff
+        fill: 0xffd700
       }
     });
-    difficulty.name = 'difficulty';
-    difficulty.position.set(20, 70);
-    spawnerInfo.addChild(difficulty);
+    bossStatus.name = 'bossStatus';
+    bossStatus.position.set(20, 80);
+    swimmingInfo.addChild(bossStatus);
     
-    spawnerInfo.position.set(this.app.screen.width - 300, 50);
-    this.uiLayer.addChild(spawnerInfo);
+    swimmingInfo.position.set(this.app.screen.width - 320, 50);
+    this.uiLayer.addChild(swimmingInfo);
   }
   
   /**
-   * Hides spawner mode UI
+   * Hides swimming mode UI
    */
-  private hideSpawnerUI(): void {
-    const spawnerInfo = this.uiLayer.getChildByName('spawnerInfo');
-    if (spawnerInfo) {
-      this.uiLayer.removeChild(spawnerInfo);
-      spawnerInfo.destroy({ children: true });
+  private hideSwimmingUI(): void {
+    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo');
+    if (swimmingInfo) {
+      this.uiLayer.removeChild(swimmingInfo);
+      swimmingInfo.destroy({ children: true });
     }
   }
   
   /**
-   * Updates spawner UI with current stats
+   * Updates swimming UI with current stats
    */
-  private updateSpawnerUI(): void {
-    if (!this.spawnerSystem || !this.isSpawnerMode) return;
+  private updateSwimmingUI(): void {
+    if (!this.swimmingSystem || !this.isSwimmingMode) return;
     
-    const spawnerInfo = this.uiLayer.getChildByName('spawnerInfo') as PIXI.Container;
-    if (!spawnerInfo) return;
+    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo') as PIXI.Container;
+    if (!swimmingInfo) return;
     
-    const fishCount = spawnerInfo.getChildByName('fishCount') as PIXI.Text;
-    const difficulty = spawnerInfo.getChildByName('difficulty') as PIXI.Text;
+    const fishCount = swimmingInfo.getChildByName('fishCount') as PIXI.Text;
+    const bossStatus = swimmingInfo.getChildByName('bossStatus') as PIXI.Text;
     
     if (fishCount) {
-      fishCount.text = `Fish: ${this.spawnerSystem.getActiveFishCount()}`;
+      fishCount.text = `Active Fish: ${this.swimmingSystem.getActiveFishCount()}`;
     }
     
-    if (difficulty) {
-      difficulty.text = `Difficulty: ${this.spawnerSystem.getDifficulty().toFixed(1)}`;
+    if (bossStatus) {
+      bossStatus.text = `Boss: ${this.swimmingSystem.isBossActive() ? '⚠️ ACTIVE!' : 'Not Active'}`;
+      bossStatus.style.fill = this.swimmingSystem.isBossActive() ? 0xff0000 : 0xffd700;
     }
   }
 
@@ -1304,10 +1305,10 @@ export class NFTGalleryEngine {
     }
     
     // Update based on mode
-    if (this.isSpawnerMode && this.spawnerSystem) {
-      // Update spawner system
-      this.spawnerSystem.update(deltaTime);
-      this.updateSpawnerUI();
+    if (this.isSwimmingMode && this.swimmingSystem) {
+      // Update swimming system
+      this.swimmingSystem.update(deltaTime);
+      this.updateSwimmingUI();
     } else {
       // Update static fish with swimming behavior
       this.fishes.forEach(fish => {
