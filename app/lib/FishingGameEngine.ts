@@ -253,7 +253,7 @@ export class FishingGameEngine {
     button.addChild(label);
     
     button.interactive = true;
-    button.buttonMode = true;
+    button.cursor = 'pointer'; // 使用 cursor 替代 buttonMode
     
     button.on('pointerdown', () => {
       bg.tint = 0x666666;
