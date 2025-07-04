@@ -758,10 +758,8 @@ export class ArtisticFishPixi extends PIXI.Container {
     this.fishContainer.addChild(lure);
     this.fishContainer.addChild(bulb);
     
-    // Animate the lure
-    this.app.ticker.add(() => {
-      bulb.alpha = 0.5 + Math.sin(Date.now() * 0.005) * 0.3;
-    });
+    // Store bulb reference for animation in update method
+    (this as any).anglerBulb = bulb;
   }
   
   /**
@@ -895,15 +893,8 @@ export class ArtisticFishPixi extends PIXI.Container {
     fireContainer.addChildAt(glow, 0);
     this.fishContainer.addChild(fireContainer);
     
-    // Animate fire
-    this.app.ticker.add(() => {
-      fireContainer.children.forEach((flame: any, i) => {
-        if (flame.baseY !== undefined) {
-          flame.y = flame.baseY - Math.abs(Math.sin(Date.now() * 0.001 * flame.speed + flame.phase)) * 5;
-          flame.alpha = 0.5 + Math.sin(Date.now() * 0.002 + i) * 0.3;
-        }
-      });
-    });
+    // Store fire container reference for animation in update method
+    (this as any).fireContainer = fireContainer;
   }
   
   /**
