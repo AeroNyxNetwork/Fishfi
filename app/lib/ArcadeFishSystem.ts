@@ -443,7 +443,25 @@ export class ArcadePixelFish extends PIXI.Container {
     const createSparkle = () => {
       const sparkle = new PIXI.Graphics();
       sparkle.beginFill(0xffffff, 0.8);
-      sparkle.drawStar(0, 0, 4, this.pixelSize);
+      
+      // 手动绘制星形
+      const points = 4;
+      const outerRadius = this.pixelSize;
+      const innerRadius = this.pixelSize * 0.5;
+      
+      for (let i = 0; i < points * 2; i++) {
+        const angle = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        
+        if (i === 0) {
+          sparkle.moveTo(x, y);
+        } else {
+          sparkle.lineTo(x, y);
+        }
+      }
+      sparkle.closePath();
       sparkle.endFill();
       
       const angle = Math.random() * Math.PI * 2;
