@@ -643,103 +643,146 @@ export class Web3FishVisuals {
   
   // Texture creation helpers
   private static createBubbleTexture(): PIXI.Texture {
-    const graphics = new PIXI.Graphics();
-    graphics.lineStyle(2, 0xffffff, 0.8);
-    graphics.beginFill(0xffffff, 0.1);
-    graphics.drawCircle(16, 16, 14);
-    graphics.endFill();
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Draw bubble
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(16, 16, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     
     // Add highlight
-    graphics.beginFill(0xffffff, 0.6);
-    graphics.drawCircle(12, 10, 4);
-    graphics.endFill();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.arc(12, 10, 4, 0, Math.PI * 2);
+    ctx.fill();
     
-    return graphics.generateCanvasTexture();
+    return PIXI.Texture.from(canvas);
   }
   
   private static createEthereumGlowTexture(): PIXI.Texture {
-    const graphics = new PIXI.Graphics();
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
     
     // Draw Ethereum-inspired diamond shape
-    graphics.beginFill(0x627eea, 0.8);
-    graphics.moveTo(16, 4);
-    graphics.lineTo(28, 16);
-    graphics.lineTo(16, 28);
-    graphics.lineTo(4, 16);
-    graphics.closePath();
-    graphics.endFill();
+    ctx.fillStyle = 'rgba(98, 126, 234, 0.8)';
+    ctx.beginPath();
+    ctx.moveTo(16, 4);
+    ctx.lineTo(28, 16);
+    ctx.lineTo(16, 28);
+    ctx.lineTo(4, 16);
+    ctx.closePath();
+    ctx.fill();
     
     // Inner glow
-    graphics.beginFill(0xffffff, 0.6);
-    graphics.moveTo(16, 10);
-    graphics.lineTo(22, 16);
-    graphics.lineTo(16, 22);
-    graphics.lineTo(10, 16);
-    graphics.closePath();
-    graphics.endFill();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(16, 10);
+    ctx.lineTo(22, 16);
+    ctx.lineTo(16, 22);
+    ctx.lineTo(10, 16);
+    ctx.closePath();
+    ctx.fill();
     
-    return graphics.generateCanvasTexture();
+    return PIXI.Texture.from(canvas);
   }
   
   private static createNFTFragmentTexture(): PIXI.Texture {
-    const graphics = new PIXI.Graphics();
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
     
     // Create pixelated NFT-style fragment
-    const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x6a4c93];
+    const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#6a4c93'];
     const pixelSize = 4;
     
     for (let x = 0; x < 8; x++) {
       for (let y = 0; y < 8; y++) {
         if (Math.random() > 0.3) {
-          graphics.beginFill(colors[Math.floor(Math.random() * colors.length)]);
-          graphics.drawRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-          graphics.endFill();
+          ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+          ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
         }
       }
     }
     
-    return graphics.generateCanvasTexture();
+    return PIXI.Texture.from(canvas);
   }
   
   private static createDataStreamTexture(): PIXI.Texture {
-    const graphics = new PIXI.Graphics();
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
     
     // Binary data visualization
-    graphics.beginFill(0x00ff00, 0.8);
-    const text = ['0', '1'][Math.floor(Math.random() * 2)];
-    // Simple rectangle to represent data
-    graphics.drawRect(0, 0, 20, 30);
-    graphics.endFill();
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+    ctx.fillRect(6, 1, 20, 30);
     
-    return graphics.generateCanvasTexture();
+    // Add "0" or "1" text
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.font = 'bold 20px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(Math.random() > 0.5 ? '1' : '0', 16, 16);
+    
+    return PIXI.Texture.from(canvas);
   }
   
   private static createPortalTexture(): PIXI.Texture {
-    const graphics = new PIXI.Graphics();
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d')!;
     
     // Swirling portal effect
     const centerX = 32;
     const centerY = 32;
     const maxRadius = 30;
     
+    // Create gradient for portal
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
+    gradient.addColorStop(0, 'rgba(224, 86, 253, 0.8)');
+    gradient.addColorStop(0.5, 'rgba(142, 68, 173, 0.6)');
+    gradient.addColorStop(1, 'rgba(52, 152, 219, 0.3)');
+    
+    // Draw concentric circles
     for (let i = 0; i < 5; i++) {
       const alpha = 0.8 - (i * 0.15);
       const radius = maxRadius - (i * 6);
       
-      graphics.lineStyle(3, 0xe056fd, alpha);
-      graphics.drawCircle(centerX, centerY, radius);
-      
-      // Add spiral effect
-      graphics.moveTo(centerX, centerY);
-      for (let angle = 0; angle < Math.PI * 4; angle += 0.1) {
-        const r = angle * 3;
-        const x = centerX + Math.cos(angle) * r;
-        const y = centerY + Math.sin(angle) * r;
-        graphics.lineTo(x, y);
-      }
+      ctx.strokeStyle = `rgba(224, 86, 253, ${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.stroke();
     }
     
-    return graphics.generateCanvasTexture();
+    // Add spiral effect
+    ctx.strokeStyle = 'rgba(224, 86, 253, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let angle = 0; angle < Math.PI * 4; angle += 0.1) {
+      const r = angle * 3;
+      const x = centerX + Math.cos(angle) * r;
+      const y = centerY + Math.sin(angle) * r;
+      if (angle === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+    
+    return PIXI.Texture.from(canvas);
   }
   
   // Web3 Visual Effects
