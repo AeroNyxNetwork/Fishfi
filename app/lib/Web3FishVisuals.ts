@@ -994,7 +994,7 @@ export class Web3FishVisuals {
     // Fin animations
     if (layers.details) {
       const fins = layers.details.children;
-      fins.forEach((fin, index) => {
+      fins.forEach((fin: PIXI.DisplayObject, index: number) => {
         if (fin instanceof PIXI.Graphics) {
           fin.rotation = Math.sin(animTime * 0.004 + index) * 0.2;
         }
@@ -1048,7 +1048,7 @@ export class Web3FishVisuals {
     }
     
     // Update existing particles
-    container.children.forEach((child, index) => {
+    container.children.forEach((child: PIXI.DisplayObject, index: number) => {
       if (child instanceof PIXI.Sprite && (child as any).velocity) {
         const particle = child;
         const age = (particle as any).age || 0;
