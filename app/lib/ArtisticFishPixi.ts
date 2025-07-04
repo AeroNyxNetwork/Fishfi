@@ -67,7 +67,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   public dna: FishDNA;
   private baseSize: number = 120; // Base size for high-quality rendering
   private fishContainer: PIXI.Container;
-  private bodySprite: PIXI.Sprite;
+  private bodySprite!: PIXI.Sprite;
   private patternSprite?: PIXI.Sprite;
   private overlaySprite?: PIXI.Sprite;
   private glowContainer?: PIXI.Container;
