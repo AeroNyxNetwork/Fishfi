@@ -831,7 +831,12 @@ export class NFTGalleryEngine {
     const rarity = this.calculateRarity();
     
     // Generate colors with mutations
-    const colors = { ...template.baseColors };
+    const colors: FishDNA['colors'] = { 
+      ...template.baseColors,
+      glow: undefined,
+      shimmer: undefined
+    };
+    
     if (rarity !== 'common') {
       const hueShift = Math.random() * 360;
       colors.primary = this.shiftHue(colors.primary, hueShift);
@@ -839,7 +844,7 @@ export class NFTGalleryEngine {
       colors.accent = this.shiftHue(colors.accent, hueShift);
       
       if (['legendary', 'mythic', 'cosmic'].includes(rarity)) {
-        colors.glow = RARITY_CONFIG[rarity].glow.toString(16).padStart(6, '0');
+        colors.glow = '#' + RARITY_CONFIG[rarity].glow.toString(16).padStart(6, '0');
       }
     }
     
