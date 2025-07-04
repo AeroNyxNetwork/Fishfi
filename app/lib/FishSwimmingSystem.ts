@@ -113,6 +113,18 @@ interface ScreenBounds {
 }
 
 /**
+   * Spawn event definition
+   */
+interface SpawnEvent {
+    time: number;
+    category: FishCategory;
+    species: string;
+    count: number;
+    formation?: FormationType;
+    behavior: Partial<FishBehavior>;
+    entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
+}
+/**
  * Main fish swimming system
  */
 export class FishSwimmingSystem {
@@ -141,18 +153,7 @@ export class FishSwimmingSystem {
   private readonly DESPAWN_MARGIN = 200;
   private readonly BASE_SPEED = 60; // pixels per second
   
-  /**
-   * Spawn event definition
-   */
-  interface SpawnEvent {
-    time: number;
-    category: FishCategory;
-    species: string;
-    count: number;
-    formation?: FormationType;
-    behavior: Partial<FishBehavior>;
-    entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
-  }
+  
 
   constructor(app: PIXI.Application, container: PIXI.Container) {
     this.app = app;
