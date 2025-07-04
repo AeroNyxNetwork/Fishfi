@@ -292,10 +292,11 @@ export class FishRenderer {
   public createPlankton() {
     const count = 50;
     for (let i = 0; i < count; i++) {
-      const plankton = new PIXI.Graphics();
-      plankton.beginFill(0xaaccff, 0.3);
-      plankton.drawCircle(0, 0, 1);
-      plankton.endFill();
+      // 创建一个小的白色纹理作为浮游生物
+      const plankton = new PIXI.Sprite(PIXI.Texture.WHITE);
+      plankton.width = plankton.height = 2;
+      plankton.tint = 0xaaccff;
+      plankton.alpha = 0.3;
       
       plankton.x = Math.random() * this.app.screen.width;
       plankton.y = Math.random() * this.app.screen.height;
