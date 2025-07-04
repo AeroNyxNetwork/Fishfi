@@ -59,6 +59,24 @@ export interface FishTemplate {
   };
 }
 
+// Extended body shapes for more variety
+export type BodyShapeType = 
+  | 'round'          // Goldfish, pufferfish
+  | 'streamlined'    // Tuna, barracuda
+  | 'diamond'        // Angelfish
+  | 'massive'        // Whale, grouper
+  | 'serpentine'     // Eel, sea snake
+  | 'flat'           // Flounder, ray
+  | 'elongated'      // Needlefish, pipefish
+  | 'triangular'     // Boxfish
+  | 'crescent'       // Moorish idol
+  | 'oval'           // Surgeonfish
+  | 'compressed'     // Butterflyfish
+  | 'cylindrical'    // Moray eel
+  | 'asymmetrical'   // Halibut
+  | 'bulbous'        // Anglerfish
+  | 'spade';         // Batfish
+
 /**
  * Premium artistic fish class for PIXI.js v8
  * Creates visually stunning fish with advanced rendering techniques
@@ -546,13 +564,49 @@ export class ArtisticFishPixi extends PIXI.Container {
     }
     
     // Add whiskers for certain species
-    if (this.dna.traits.includes('whiskers')) {
+    if (this.dna.traits.includes('whiskers') || this.dna.traits.includes('dragon_whiskers')) {
       this.addWhiskers();
     }
     
     // Add special eyes
-    if (this.dna.traits.includes('special_eyes') || this.dna.traits.includes('glowing_eyes')) {
+    if (this.dna.traits.includes('special_eyes') || this.dna.traits.includes('glowing_eyes') || 
+        this.dna.traits.includes('predator_eyes') || this.dna.traits.includes('googly_eyes')) {
       this.enhanceEyes();
+    }
+    
+    // Add spines for lionfish/pufferfish
+    if (this.dna.traits.includes('poison_spines') || this.dna.traits.includes('spikes')) {
+      this.addSpines();
+    }
+    
+    // Add lure for anglerfish
+    if (this.dna.traits.includes('bioluminescent_lure')) {
+      this.addAnglerLure();
+    }
+    
+    // Add tentacles for jellyfish
+    if (this.dna.traits.includes('electric_tentacles')) {
+      this.addTentacles();
+    }
+    
+    // Add armor plates
+    if (this.dna.traits.includes('armor_plates') || this.dna.traits.includes('hexagonal_plates')) {
+      this.addArmorPlates();
+    }
+    
+    // Add fire effects
+    if (this.dna.traits.includes('fire_breath') || this.dna.traits.includes('fire_trail')) {
+      this.addFireEffects();
+    }
+    
+    // Add ice effects
+    if (this.dna.traits.includes('frost_armor') || this.dna.traits.includes('ice_breath')) {
+      this.addIceEffects();
+    }
+    
+    // Add mechanical parts for cyber fish
+    if (this.dna.traits.includes('led_eyes') || this.dna.traits.includes('circuit_pattern')) {
+      this.addCyberEnhancements();
     }
   }
 
@@ -615,16 +669,323 @@ export class ArtisticFishPixi extends PIXI.Container {
     const eyeGlow = new PIXI.Graphics();
     const size = this.baseSize * 0.12;
     
+    // Different eye effects based on traits
+    let glowColor = 0x00ffff;
+    let intensity = 0.6;
+    
+    if (this.dna.traits.includes('predator_eyes')) {
+      glowColor = 0xff0000;
+      intensity = 0.8;
+    } else if (this.dna.traits.includes('led_eyes')) {
+      glowColor = 0x00ff00;
+      intensity = 1.0;
+    } else if (this.dna.traits.includes('googly_eyes')) {
+      // Create googly eye effect
+      const eyeWhite = new PIXI.Graphics();
+      eyeWhite.circle(this.baseSize * 0.25, -this.baseSize * 0.05, this.baseSize * 0.08);
+      eyeWhite.fill({ color: 0xffffff });
+      
+      const pupil = new PIXI.Graphics();
+      pupil.circle(this.baseSize * 0.27, -this.baseSize * 0.03, this.baseSize * 0.04);
+      pupil.fill({ color: 0x000000 });
+      
+      this.fishContainer.addChild(eyeWhite);
+      this.fishContainer.addChild(pupil);
+      return;
+    }
+    
     // Glowing effect
     for (let i = 3; i > 0; i--) {
       eyeGlow.circle(this.baseSize * 0.25, -this.baseSize * 0.05, size * i * 0.5);
       eyeGlow.fill({ 
-        color: this.dna.colors.glow ? PIXI.Color.shared.setValue(this.dna.colors.glow).toNumber() : 0x00ffff,
-        alpha: 0.2 / i
+        color: glowColor,
+        alpha: (intensity * 0.2) / i
       });
     }
     
     this.fishContainer.addChild(eyeGlow);
+  }
+  
+  /**
+   * Adds spines for venomous fish
+   */
+  private addSpines(): void {
+    const spines = new PIXI.Graphics();
+    const spineCount = 8;
+    const spineLength = this.baseSize * 0.3;
+    
+    for (let i = 0; i < spineCount; i++) {
+      const angle = (i / spineCount) * Math.PI - Math.PI/2;
+      const startX = Math.cos(angle) * this.baseSize * 0.4;
+      const startY = Math.sin(angle) * this.baseSize * 0.3;
+      const endX = startX + Math.cos(angle) * spineLength;
+      const endY = startY + Math.sin(angle) * spineLength;
+      
+      spines.moveTo(startX, startY);
+      spines.lineTo(endX, endY);
+      spines.stroke({ color: 0xff0000, width: 2, alpha: 0.8 });
+      
+      // Poison tip
+      spines.circle(endX, endY, 2);
+      spines.fill({ color: 0x00ff00, alpha: 0.6 });
+    }
+    
+    this.fishContainer.addChildAt(spines, 0);
+  }
+  
+  /**
+   * Adds angler fish lure
+   */
+  private addAnglerLure(): void {
+    const lure = new PIXI.Graphics();
+    
+    // Lure rod
+    lure.moveTo(this.baseSize * 0.3, -this.baseSize * 0.2);
+    lure.bezierCurveTo(
+      this.baseSize * 0.4, -this.baseSize * 0.4,
+      this.baseSize * 0.5, -this.baseSize * 0.5,
+      this.baseSize * 0.6, -this.baseSize * 0.45
+    );
+    lure.stroke({ color: 0x444444, width: 3 });
+    
+    // Glowing bulb
+    const bulb = new PIXI.Graphics();
+    for (let i = 3; i > 0; i--) {
+      bulb.circle(this.baseSize * 0.6, -this.baseSize * 0.45, 6 * i);
+      bulb.fill({ color: 0x00ff00, alpha: 0.3 / i });
+    }
+    
+    this.fishContainer.addChild(lure);
+    this.fishContainer.addChild(bulb);
+    
+    // Animate the lure
+    this.app.ticker.add(() => {
+      bulb.alpha = 0.5 + Math.sin(Date.now() * 0.005) * 0.3;
+    });
+  }
+  
+  /**
+   * Adds tentacles for jellyfish
+   */
+  private addTentacles(): void {
+    const tentacleContainer = new PIXI.Container();
+    const tentacleCount = 8;
+    
+    for (let i = 0; i < tentacleCount; i++) {
+      const tentacle = new PIXI.Graphics();
+      const startX = (i - tentacleCount/2) * this.baseSize * 0.15;
+      const startY = this.baseSize * 0.3;
+      
+      // Draw wavy tentacle
+      tentacle.moveTo(startX, startY);
+      
+      const segments = 6;
+      for (let j = 1; j <= segments; j++) {
+        const t = j / segments;
+        const y = startY + t * this.baseSize * 0.8;
+        const x = startX + Math.sin(t * Math.PI * 2 + i) * this.baseSize * 0.1;
+        
+        if (j === 1) {
+          tentacle.lineTo(x, y);
+        } else {
+          const prevY = startY + (j-1)/segments * this.baseSize * 0.8;
+          const cpX = startX + Math.sin((t - 0.5/segments) * Math.PI * 2 + i) * this.baseSize * 0.15;
+          tentacle.quadraticCurveTo(cpX, (prevY + y) / 2, x, y);
+        }
+      }
+      
+      // Electric effect
+      tentacle.stroke({ 
+        color: this.dna.colors.accent ? PIXI.Color.shared.setValue(this.dna.colors.accent).toNumber() : 0x00ffff,
+        width: 2,
+        alpha: 0.7
+      });
+      
+      // Add electric sparks
+      if (Math.random() > 0.7) {
+        const sparkY = startY + Math.random() * this.baseSize * 0.8;
+        tentacle.circle(startX + (Math.random() - 0.5) * 10, sparkY, 2);
+        tentacle.fill({ color: 0xffffff, alpha: 0.8 });
+      }
+      
+      tentacleContainer.addChild(tentacle);
+    }
+    
+    tentacleContainer.alpha = 0.6;
+    this.fishContainer.addChildAt(tentacleContainer, 0);
+  }
+  
+  /**
+   * Adds armor plating effects
+   */
+  private addArmorPlates(): void {
+    const armor = new PIXI.Graphics();
+    const plateSize = this.baseSize * 0.08;
+    
+    // Create hexagonal plate pattern
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 8; col++) {
+        const x = -this.baseSize * 0.3 + col * plateSize * 0.9;
+        const y = -this.baseSize * 0.2 + row * plateSize * 0.8 + (col % 2) * plateSize * 0.4;
+        
+        // Check if within fish bounds (rough approximation)
+        if (Math.abs(x) < this.baseSize * 0.4 && Math.abs(y) < this.baseSize * 0.3) {
+          this.drawHexagon(armor, x, y, plateSize * 0.4);
+        }
+      }
+    }
+    
+    armor.alpha = 0.3;
+    this.fishContainer.addChild(armor);
+  }
+  
+  private drawHexagon(graphics: PIXI.Graphics, x: number, y: number, size: number): void {
+    const points: PIXI.Point[] = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      points.push(new PIXI.Point(
+        x + Math.cos(angle) * size,
+        y + Math.sin(angle) * size
+      ));
+    }
+    
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+    graphics.stroke({ color: 0x888888, width: 1 });
+    graphics.fill({ color: 0xaaaaaa, alpha: 0.2 });
+  }
+  
+  /**
+   * Adds fire effects for phoenix/dragon fish
+   */
+  private addFireEffects(): void {
+    const fireContainer = new PIXI.Container();
+    
+    // Create fire particles
+    const particleCount = 15;
+    for (let i = 0; i < particleCount; i++) {
+      const flame = new PIXI.Graphics();
+      
+      // Flame shape
+      flame.moveTo(0, 0);
+      flame.bezierCurveTo(-3, -5, 3, -5, 0, -10);
+      flame.fill({ color: 0xff4500, alpha: 0.8 });
+      
+      flame.position.set(
+        (Math.random() - 0.5) * this.baseSize * 0.6,
+        (Math.random() - 0.5) * this.baseSize * 0.4
+      );
+      
+      // Animate flames
+      (flame as any).baseY = flame.y;
+      (flame as any).speed = 0.5 + Math.random() * 0.5;
+      (flame as any).phase = Math.random() * Math.PI * 2;
+      
+      fireContainer.addChild(flame);
+    }
+    
+    // Add glow
+    const glow = new PIXI.Graphics();
+    glow.circle(0, 0, this.baseSize * 0.5);
+    glow.fill({ color: 0xff6600, alpha: 0.2 });
+    
+    fireContainer.addChildAt(glow, 0);
+    this.fishContainer.addChild(fireContainer);
+    
+    // Animate fire
+    this.app.ticker.add(() => {
+      fireContainer.children.forEach((flame: any, i) => {
+        if (flame.baseY !== undefined) {
+          flame.y = flame.baseY - Math.abs(Math.sin(Date.now() * 0.001 * flame.speed + flame.phase)) * 5;
+          flame.alpha = 0.5 + Math.sin(Date.now() * 0.002 + i) * 0.3;
+        }
+      });
+    });
+  }
+  
+  /**
+   * Adds ice effects for arctic fish
+   */
+  private addIceEffects(): void {
+    const iceContainer = new PIXI.Container();
+    
+    // Ice crystals
+    const crystalCount = 10;
+    for (let i = 0; i < crystalCount; i++) {
+      const crystal = new PIXI.Graphics();
+      
+      // Draw ice crystal
+      const size = 3 + Math.random() * 5;
+      for (let j = 0; j < 6; j++) {
+        const angle = (j / 6) * Math.PI * 2;
+        crystal.moveTo(0, 0);
+        crystal.lineTo(Math.cos(angle) * size, Math.sin(angle) * size);
+      }
+      crystal.stroke({ color: 0x87ceeb, width: 1, alpha: 0.8 });
+      
+      crystal.position.set(
+        (Math.random() - 0.5) * this.baseSize * 0.8,
+        (Math.random() - 0.5) * this.baseSize * 0.6
+      );
+      
+      iceContainer.addChild(crystal);
+    }
+    
+    // Frost overlay
+    const frost = new PIXI.Graphics();
+    frost.circle(0, 0, this.baseSize * 0.6);
+    frost.fill({ color: 0xffffff, alpha: 0.1 });
+    
+    iceContainer.addChildAt(frost, 0);
+    this.fishContainer.addChild(iceContainer);
+  }
+  
+  /**
+   * Adds cybernetic enhancements
+   */
+  private addCyberEnhancements(): void {
+    const cyber = new PIXI.Graphics();
+    
+    // Circuit lines
+    const lineCount = 5;
+    for (let i = 0; i < lineCount; i++) {
+      const startX = -this.baseSize * 0.3 + Math.random() * this.baseSize * 0.6;
+      const startY = -this.baseSize * 0.2 + Math.random() * this.baseSize * 0.4;
+      
+      cyber.moveTo(startX, startY);
+      
+      // Draw circuit path
+      for (let j = 0; j < 3; j++) {
+        const endX = startX + (Math.random() - 0.5) * this.baseSize * 0.2;
+        const endY = startY + (Math.random() - 0.5) * this.baseSize * 0.2;
+        cyber.lineTo(endX, endY);
+        
+        // Add node
+        cyber.circle(endX, endY, 2);
+        cyber.fill({ color: 0x00ff00, alpha: 0.8 });
+      }
+      
+      cyber.stroke({ color: 0x00ff00, width: 1, alpha: 0.6 });
+    }
+    
+    // LED strips
+    const ledPositions = [
+      { x: this.baseSize * 0.3, y: 0 },
+      { x: 0, y: -this.baseSize * 0.15 },
+      { x: 0, y: this.baseSize * 0.15 }
+    ];
+    
+    ledPositions.forEach(pos => {
+      for (let i = 0; i < 3; i++) {
+        cyber.circle(pos.x - i * 5, pos.y, 1.5);
+        cyber.fill({ color: 0xff0000, alpha: 0.8 });
+      }
+    });
+    
+    this.fishContainer.addChild(cyber);
   }
 
   /**
