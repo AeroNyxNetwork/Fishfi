@@ -140,7 +140,7 @@ export function createGlowFilter(
  * Simple animation helper
  */
 export function animateObject(
-  object: PIXI.DisplayObject,
+  object: PIXI.Container,
   properties: Partial<{
     x: number;
     y: number;
