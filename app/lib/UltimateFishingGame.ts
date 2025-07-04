@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { GlowFilter } from '@pixi/filter-glow';
+import { PremiumPixelFish } from './PremiumPixelFish';
 
 // 真正的游戏配置
 export interface GameConfig {
@@ -243,8 +244,24 @@ export class UltimateFish extends PIXI.Container {
     this.addChild(this.effectContainer);
     this.addChild(this.bodyContainer);
     
-    // 创建鱼体
-    this.createFishBody();
+    // 使用高级像素鱼设计系统
+    const fishTypeMap: Record<string, keyof typeof PremiumPixelFish['FISH_DESIGNS']> = {
+      'mini_neon': 'neonTetra',
+      'goldfish': 'goldfish',
+      'ice_fish': 'angelfish',
+      'bomb_fish': 'pufferfish',
+      'golden_shark': 'shark',
+      'dragon_king': 'dragonKing',
+      'electric_eel': 'electricEel',
+      'clownfish': 'clownfish'
+    };
+    
+    const designType = fishTypeMap[this.config.id] || 'goldfish';
+    const premiumFish = PremiumPixelFish.createPremiumFish(designType as any, this.config.size);
+    this.bodyContainer.addChild(premiumFish);
+    
+    // 存储动画引用
+    (this as any).premiumFishSprite = premiumFish;
     
     // 创建血条（只有高级鱼显示）
     if (this.config.health > 5) {
@@ -253,77 +270,6 @@ export class UltimateFish extends PIXI.Container {
     
     // 创建奖励显示
     this.createRewardDisplay();
-  }
-  
-  private createFishBody() {
-    const graphics = new PIXI.Graphics();
-    const size = 20 * this.config.size;
-    
-    // 根据稀有度选择颜色
-    const colors = {
-      common: 0x00ccff,
-      rare: 0x00ff88,
-      epic: 0xcc66ff,
-      legendary: 0xffcc00,
-      mythic: 0xff0066
-    };
-    
-    const color = colors[this.config.rarity];
-    
-    // 绘制像素化但精美的鱼形
-    graphics.beginFill(color);
-    
-    // 鱼身主体 - 使用多个矩形组成流线型
-    const bodyParts = [
-      { x: -size * 0.4, y: -size * 0.1, w: size * 0.2, h: size * 0.2 },  // 头
-      { x: -size * 0.2, y: -size * 0.15, w: size * 0.3, h: size * 0.3 }, // 前身
-      { x: 0, y: -size * 0.2, w: size * 0.3, h: size * 0.4 },           // 中身
-      { x: size * 0.2, y: -size * 0.15, w: size * 0.2, h: size * 0.3 }, // 后身
-      { x: size * 0.3, y: -size * 0.1, w: size * 0.15, h: size * 0.2 }  // 尾部
-    ];
-    
-    bodyParts.forEach(part => {
-      graphics.drawRect(part.x, part.y, part.w, part.h);
-    });
-    
-    // 添加鱼鳍
-    graphics.beginFill(color, 0.8);
-    // 背鳍
-    graphics.moveTo(0, -size * 0.2);
-    graphics.lineTo(-size * 0.1, -size * 0.35);
-    graphics.lineTo(size * 0.1, -size * 0.35);
-    graphics.closePath();
-    graphics.endFill();
-    
-    // 尾鳍
-    graphics.beginFill(color, 0.9);
-    graphics.moveTo(size * 0.4, 0);
-    graphics.lineTo(size * 0.6, -size * 0.2);
-    graphics.lineTo(size * 0.6, size * 0.2);
-    graphics.closePath();
-    graphics.endFill();
-    
-    // 眼睛
-    graphics.beginFill(0xffffff);
-    graphics.drawCircle(-size * 0.25, -size * 0.05, size * 0.05);
-    graphics.endFill();
-    graphics.beginFill(0x000000);
-    graphics.drawCircle(-size * 0.25, -size * 0.05, size * 0.03);
-    graphics.endFill();
-    
-    this.bodyContainer.addChild(graphics);
-    
-    // 添加发光效果
-    if (this.config.rarity !== 'common') {
-      const glowFilter = new GlowFilter({
-        distance: 10 * this.config.size,
-        outerStrength: this.config.rarity === 'mythic' ? 3 : 2,
-        innerStrength: 1,
-        color: color,
-        quality: 0.5,
-      });
-      graphics.filters = [glowFilter];
-    }
   }
   
   private createHealthBar() {
@@ -483,14 +429,19 @@ export class UltimateFish extends PIXI.Container {
     // 波浪游动
     this.y = this.targetY + Math.sin(this.time * this.waveFrequency) * this.waveAmplitude;
     
-    // 身体摆动
-    this.bodyContainer.rotation = Math.sin(this.time * 0.1) * 0.1;
+    // 更新高级像素鱼动画
+    const premiumSprite = (this as any).premiumFishSprite;
+    if (premiumSprite) {
+      PremiumPixelFish.animateFish(premiumSprite, this.time);
+    }
     
     // 特殊鱼的额外动画
     if (this.config.rarity === 'mythic') {
       // 彩虹色变
       const hue = (this.time * 2) % 360;
-      this.bodyContainer.children[0].tint = this.hslToHex(hue, 70, 50);
+      if (this.bodyContainer.children[0]) {
+        this.bodyContainer.children[0].tint = this.hslToHex(hue, 70, 50);
+      }
     }
   }
   
