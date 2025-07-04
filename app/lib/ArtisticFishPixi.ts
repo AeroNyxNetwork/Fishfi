@@ -49,6 +49,8 @@ export interface FishTemplate {
     primary: string;
     secondary: string;
     accent: string;
+    glow?: string;
+    shimmer?: string;
   };
   features: {
     bodyRatio: { w: number; h: number };
