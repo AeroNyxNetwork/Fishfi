@@ -297,8 +297,8 @@ export class WaterEffects {
       
       // 水滴物理动画
       const vx = (Math.random() - 0.5) * 10 * intensity;
-      const vy = -Math.random() * 15 * intensity - 5;
-      let gravity = 0.5;
+      let vy = -Math.random() * 15 * intensity - 5;
+      const gravity = 0.5;
       
       const animateDroplet = () => {
         droplet.x += vx;
