@@ -3,17 +3,17 @@ import { ProceduralPixelFish, FishGenome } from './ProceduralPixelFish';
 
 export class OptimizedRenderer {
   public app: PIXI.Application;
-  private mainContainer: PIXI.Container;
-  private fishContainer: PIXI.Container;
-  private effectsContainer: PIXI.Container;
+  private mainContainer!: PIXI.Container;
+  private fishContainer!: PIXI.Container;
+  private effectsContainer!: PIXI.Container;
   
   // 性能优化
-  private renderTexture: PIXI.RenderTexture;
-  private renderSprite: PIXI.Sprite;
+  private renderTexture!: PIXI.RenderTexture;
+  private renderSprite!: PIXI.Sprite;
   
   // 简化的背景
-  private gradientBg: PIXI.Graphics;
-  private lightRays: PIXI.Graphics;
+  private gradientBg!: PIXI.Graphics;
+  private lightRays!: PIXI.Graphics;
   
   // 鱼群管理
   private fishes: ProceduralPixelFish[] = [];
