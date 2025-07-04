@@ -4,7 +4,7 @@ import * as PIXI from 'pixi.js';
 export class PremiumPixelFish {
   
   // 精心设计的像素鱼模板 - 每个都是艺术品
-  private static readonly FISH_DESIGNS = {
+  public static readonly FISH_DESIGNS = {
     // 霓虹鱼 - 小巧精致
     neonTetra: {
       frames: [
