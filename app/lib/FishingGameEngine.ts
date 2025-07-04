@@ -3,11 +3,11 @@ import { UltimateFish, Bullet, ULTIMATE_FISH_TYPES, GameConfig } from './Ultimat
 
 export class FishingGameEngine {
   public app: PIXI.Application;
-  private gameContainer: PIXI.Container;
-  private fishContainer: PIXI.Container;
-  private bulletContainer: PIXI.Container;
-  private effectContainer: PIXI.Container;
-  private uiContainer: PIXI.Container;
+  private gameContainer!: PIXI.Container;
+  private fishContainer!: PIXI.Container;
+  private bulletContainer!: PIXI.Container;
+  private effectContainer!: PIXI.Container;
+  private uiContainer!: PIXI.Container;
   
   // 游戏状态
   private gameConfig: GameConfig = {
@@ -20,7 +20,7 @@ export class FishingGameEngine {
   // 游戏对象
   private fishes: UltimateFish[] = [];
   private bullets: Bullet[] = [];
-  private cannon: PIXI.Container;
+  private cannon!: PIXI.Container;
   
   // UI元素
   private coinDisplay!: PIXI.Text;
