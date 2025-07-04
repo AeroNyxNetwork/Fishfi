@@ -58,10 +58,15 @@ export default function FishFiGame() {
     
     // 清理
     return () => {
-      renderer.destroy();
-      // 复制当前的鱼数组引用
-      const currentFishSprites = fishSpritesRef.current;
+      // 保存当前引用以避免闭包问题
+      const currentRenderer = rendererRef.current;
+      const currentFishSprites = [...fishSpritesRef.current];
+      
+      if (currentRenderer) {
+        currentRenderer.destroy();
+      }
       currentFishSprites.forEach(fish => fish.destroy());
+      fishSpritesRef.current = [];
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
