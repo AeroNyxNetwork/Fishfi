@@ -566,14 +566,16 @@ export class FishingGameEngine {
         }
       });
       
-      if (nearestFish !== null) {
+      if (nearestFish !== null && nearestFish !== undefined) {
+        const targetFish = nearestFish; // 创建一个明确类型的局部变量
+        
         // 绘制闪电
         lightning.moveTo(currentPos.x, currentPos.y);
-        lightning.lineTo(nearestFish.x, nearestFish.y);
+        lightning.lineTo(targetFish.x, targetFish.y);
         
-        nearestFish.takeDamage(10);
-        hitFishes.push(nearestFish);
-        currentPos = new PIXI.Point(nearestFish.x, nearestFish.y);
+        targetFish.takeDamage(10);
+        hitFishes.push(targetFish);
+        currentPos = new PIXI.Point(targetFish.x, targetFish.y);
       } else {
         break;
       }
