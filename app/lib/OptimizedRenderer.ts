@@ -156,74 +156,180 @@ export class OptimizedRenderer {
       case 'goldfish':
         genome = {
           bodyLength: 20,
-          bodyHeight: 12,
+          bodyHeight: 14,
           bodyRatio: 0.7,
-          primaryHue: 45,
-          secondaryHue: 30,
+          headSize: 0.3,
+          tailSize: 0.25,
+          primaryHue: 35,        // 金橙色
+          secondaryHue: 45,      // 亮金色
           patternType: 'gradient',
+          luminance: 0.6,
           swimStyle: 'sine',
           flexibility: 0.6,
-          sparkleIntensity: 0.3
+          finCount: 4,
+          sparkleIntensity: 0.4
         };
         break;
         
       case 'shark':
         genome = {
-          bodyLength: 32,
-          bodyHeight: 10,
-          bodyRatio: 0.4,
-          primaryHue: 200,
-          secondaryHue: 180,
+          bodyLength: 36,        // 更长
+          bodyHeight: 12,        // 相对较扁
+          bodyRatio: 0.35,       // 流线型
+          headSize: 0.2,         // 尖头
+          tailSize: 0.35,        // 大尾巴
+          primaryHue: 210,       // 蓝灰色
+          secondaryHue: 200,     // 深蓝
           patternType: 'solid',
+          luminance: 0.4,
           swimStyle: 'glide',
           flexibility: 0.3,
-          tailSize: 0.4
+          finCount: 3
         };
         break;
         
       case 'pufferfish':
         genome = {
-          bodyLength: 16,
-          bodyHeight: 16,
-          bodyRatio: 0.8,
-          primaryHue: 60,
-          secondaryHue: 40,
+          bodyLength: 18,
+          bodyHeight: 18,        // 几乎正方形
+          bodyRatio: 0.9,        // 非常圆
+          headSize: 0.2,
+          tailSize: 0.15,        // 小尾巴
+          primaryHue: 55,        // 黄褐色
+          secondaryHue: 40,      // 褐色
           patternType: 'spots',
+          luminance: 0.5,
           swimStyle: 'burst',
-          flexibility: 0.2
+          flexibility: 0.2,
+          finCount: 4
         };
         break;
         
       case 'angelfish':
         genome = {
-          bodyLength: 18,
-          bodyHeight: 20,
+          bodyLength: 16,
+          bodyHeight: 22,        // 高度大于长度
           bodyRatio: 0.6,
-          primaryHue: 300,
-          secondaryHue: 270,
+          headSize: 0.25,
+          tailSize: 0.3,
+          primaryHue: 280,       // 紫色
+          secondaryHue: 300,     // 粉紫
           patternType: 'stripes',
+          luminance: 0.5,
           swimStyle: 'zigzag',
           flexibility: 0.8,
-          finCount: 6
+          finCount: 6,          // 多鳍
+          sparkleIntensity: 0.2
         };
         break;
         
       case 'neon':
         genome = {
-          bodyLength: 14,
-          bodyHeight: 6,
-          bodyRatio: 0.5,
-          primaryHue: 180,
-          secondaryHue: 120,
+          bodyLength: 12,
+          bodyHeight: 6,         // 小巧
+          bodyRatio: 0.4,
+          headSize: 0.3,
+          tailSize: 0.25,
+          primaryHue: 190,       // 青色
+          secondaryHue: 120,     // 荧光绿
           patternType: 'gradient',
+          luminance: 0.7,        // 高亮度
           swimStyle: 'burst',
+          flexibility: 0.7,
           hasGlow: true,
-          sparkleIntensity: 0.8
+          sparkleIntensity: 0.9  // 闪闪发光
+        };
+        break;
+        
+      case 'eel':
+        genome = {
+          bodyLength: 40,        // 非常长
+          bodyHeight: 8,         // 很细
+          bodyRatio: 0.3,
+          headSize: 0.15,
+          tailSize: 0.2,
+          primaryHue: 160,       // 深绿
+          secondaryHue: 140,     // 橄榄绿
+          patternType: 'gradient',
+          luminance: 0.3,        // 暗色
+          swimStyle: 'sine',
+          flexibility: 0.9,      // 非常柔韧
+          finCount: 2
+        };
+        break;
+        
+      case 'seahorse':
+        genome = {
+          bodyLength: 14,
+          bodyHeight: 20,        // 竖立的
+          bodyRatio: 0.5,
+          headSize: 0.35,        // 大头
+          tailSize: 0.4,         // 卷曲的尾巴
+          primaryHue: 320,       // 粉红
+          secondaryHue: 340,     // 浅粉
+          patternType: 'spots',
+          luminance: 0.6,
+          swimStyle: 'zigzag',
+          flexibility: 1.0,      // 最大柔韧度
+          finCount: 3,
+          sparkleIntensity: 0.3
+        };
+        break;
+        
+      case 'flatfish':
+        genome = {
+          bodyLength: 22,
+          bodyHeight: 10,        // 扁平
+          bodyRatio: 0.8,        // 宽体
+          headSize: 0.2,
+          tailSize: 0.2,
+          primaryHue: 30,        // 沙色
+          secondaryHue: 20,      // 深沙色
+          patternType: 'spots',
+          luminance: 0.4,
+          swimStyle: 'glide',
+          flexibility: 0.4,
+          finCount: 4
+        };
+        break;
+        
+      case 'swordfish':
+        genome = {
+          bodyLength: 32,
+          bodyHeight: 10,
+          bodyRatio: 0.3,        // 非常流线
+          headSize: 0.35,        // 长吻
+          tailSize: 0.25,
+          primaryHue: 220,       // 深蓝
+          secondaryHue: 240,     // 蓝紫
+          patternType: 'gradient',
+          luminance: 0.5,
+          swimStyle: 'burst',    // 快速冲刺
+          flexibility: 0.2,
+          finCount: 3
+        };
+        break;
+        
+      case 'clownfish':
+        genome = {
+          bodyLength: 16,
+          bodyHeight: 12,
+          bodyRatio: 0.6,
+          headSize: 0.25,
+          tailSize: 0.25,
+          primaryHue: 20,        // 橙色
+          secondaryHue: 0,       // 红色
+          patternType: 'stripes',
+          luminance: 0.6,
+          swimStyle: 'sine',
+          flexibility: 0.5,
+          finCount: 4,
+          sparkleIntensity: 0.2
         };
         break;
         
       default:
-        // 随机鱼
+        // 随机鱼 - 完全随机参数
         genome = {};
     }
     
