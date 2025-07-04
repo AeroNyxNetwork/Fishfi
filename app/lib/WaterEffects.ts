@@ -272,7 +272,7 @@ export class WaterEffects {
         const index = this.ripples.indexOf(rippleFilter);
         if (index > -1) {
           this.ripples.splice(index, 1);
-          this.app.stage.filters = this.app.stage.filters?.filter(f => f !== rippleFilter);
+          this.app.stage.filters = this.app.stage.filters?.filter(f => f !== rippleFilter) || null;
         }
       } else {
         requestAnimationFrame(animateRipple);
