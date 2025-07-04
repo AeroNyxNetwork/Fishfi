@@ -177,10 +177,9 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     // Generate texture with antialiasing
     const bounds = graphics.getLocalBounds();
-    const texture = renderer.generateTexture({
-      target: graphics,
+    const texture = renderer.generateTexture(graphics, {
       resolution: 2, // Higher resolution for quality
-      region: new PIXI.Rectangle(
+      frame: new PIXI.Rectangle(
         bounds.x - 20,
         bounds.y - 20,
         bounds.width + 40,
@@ -391,10 +390,9 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     // Create pattern texture
     const bounds = graphics.getLocalBounds();
-    const patternTexture = renderer.generateTexture({
-      target: graphics,
+    const patternTexture = renderer.generateTexture(graphics, {
       resolution: 2,
-      region: new PIXI.Rectangle(
+      frame: new PIXI.Rectangle(
         bounds.x - 20,
         bounds.y - 20,
         bounds.width + 40,
@@ -844,8 +842,7 @@ export class ArtisticFishPixi extends PIXI.Container {
       });
     }
     
-    const texture = renderer.generateTexture({
-      target: graphics,
+    const texture = renderer.generateTexture(graphics, {
       resolution: 1
     });
     
