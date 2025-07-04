@@ -440,7 +440,8 @@ export class UltimateFish extends PIXI.Container {
       // 彩虹色变
       const hue = (this.time * 2) % 360;
       if (this.bodyContainer.children[0]) {
-        this.bodyContainer.children[0].tint = this.hslToHex(hue, 70, 50);
+        // After
+          (this.bodyContainer.children[0] as PIXI.Sprite).tint = this.hslToHex(hue, 70, 50);
       }
     }
   }
