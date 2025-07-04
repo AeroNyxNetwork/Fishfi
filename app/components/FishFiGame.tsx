@@ -1,269 +1,104 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FishRenderer } from '../lib/FishRenderer';
-import { PixelFishSprite, FishConfig } from '../lib/PixelFishSprite';
-import { WaterEffects } from '../lib/WaterEffects';
-import * as PIXI from 'pixi.js';
+import { OptimizedRenderer } from '../lib/OptimizedRenderer';
+import { ProceduralPixelFish } from '../lib/ProceduralPixelFish';
 
 export default function FishFiGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<FishRenderer | null>(null);
-  const waterEffectsRef = useRef<WaterEffects | null>(null);
-  const fishSpritesRef = useRef<PixelFishSprite[]>([]);
+  const rendererRef = useRef<OptimizedRenderer | null>(null);
   
   const [stats, setStats] = useState({
     fishCount: 0,
     fps: 0,
-    particles: 0
   });
+  
+  const [selectedFishType, setSelectedFishType] = useState('random');
   
   useEffect(() => {
     if (!canvasRef.current) return;
     
-    // 初始化渲染器
-    const renderer = new FishRenderer(canvasRef.current);
+    // 初始化优化的渲染器
+    const renderer = new OptimizedRenderer(canvasRef.current);
     rendererRef.current = renderer;
     
-    // 初始化水体效果
-    const waterEffects = new WaterEffects(renderer.app);
-    waterEffectsRef.current = waterEffects;
+    // 创建初始鱼群，展示不同特征
+    const fishTypes = ['goldfish', 'shark', 'pufferfish', 'angelfish', 'neon'];
+    fishTypes.forEach((type, index) => {
+      setTimeout(() => {
+        renderer.createSpecialFish(type);
+      }, index * 200);
+    });
     
-    // 创建初始鱼群
-    const createInitialFish = () => {
-      const fishTypes: FishConfig[] = [
-        { type: 'goldfish', size: 1, speed: 2, rarity: 'common' },
-        { type: 'goldfish', size: 1.2, speed: 1.8, rarity: 'rare' },
-        { type: 'shark', size: 2, speed: 3, rarity: 'epic' },
-        { type: 'angelfish', size: 1.5, speed: 1.5, rarity: 'rare' },
-        { type: 'electric', size: 1.3, speed: 2.5, rarity: 'legendary' }
-      ];
-      
-      // 创建10条初始鱼
-      for (let i = 0; i < 10; i++) {
-        setTimeout(() => {
-          const config = fishTypes[Math.floor(Math.random() * fishTypes.length)];
-          createFish(config);
-        }, i * 200);
-      }
-    };
-    
-    createInitialFish();
-    
-    // 启动环境效果
-    startEnvironmentEffects();
+    // 再添加一些随机鱼
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        renderer.createSpecialFish('random');
+      }, (fishTypes.length + i) * 200);
+    }
     
     // 性能监控
-    startPerformanceMonitor();
-    
-    // 清理
-    return () => {
-      // 保存当前引用以避免闭包问题
-      const currentRenderer = rendererRef.current;
-      const currentFishSprites = [...fishSpritesRef.current];
-      
-      if (currentRenderer) {
-        currentRenderer.destroy();
-      }
-      currentFishSprites.forEach(fish => fish.destroy());
-      fishSpritesRef.current = [];
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  
-  const createFish = (config: FishConfig) => {
-    if (!rendererRef.current) return;
-    
-    const fish = new PixelFishSprite(config);
-    fish.position.set(
-      Math.random() * window.innerWidth,
-      Math.random() * window.innerHeight
-    );
-    
-    rendererRef.current.app.stage.addChild(fish);
-    fishSpritesRef.current.push(fish);
-    
-    // 添加鱼的AI行为
-    setupFishAI(fish);
-    
-    // 创建入场效果
-    createSpawnEffect(fish.x, fish.y, config.rarity);
-    
-    updateStats();
-  };
-  
-  const setupFishAI = (fish: PixelFishSprite) => {
-    // 简单的游动AI
-    const changeDirection = () => {
-      const speed = 1 + Math.random() * 2;
-      const angle = Math.random() * Math.PI * 2;
-      
-      fish.setVelocity(
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed * 0.3
-      );
-      
-      // 随机改变方向
-      setTimeout(changeDirection, 3000 + Math.random() * 5000);
-    };
-    
-    changeDirection();
-    
-    // 边界检测
-    const checkBounds = () => {
-      if (fish.x < -100) fish.x = window.innerWidth + 100;
-      if (fish.x > window.innerWidth + 100) fish.x = -100;
-      if (fish.y < -100) fish.y = window.innerHeight + 100;
-      if (fish.y > window.innerHeight + 100) fish.y = -100;
-      
-      requestAnimationFrame(checkBounds);
-    };
-    
-    checkBounds();
-  };
-  
-  const createSpawnEffect = (x: number, y: number, rarity: string) => {
-    if (!waterEffectsRef.current) return;
-    
-    // 根据稀有度创建不同强度的效果
-    const intensity = {
-      common: 0.5,
-      rare: 1,
-      epic: 1.5,
-      legendary: 2
-    }[rarity] || 1;
-    
-    // 涟漪效果
-    waterEffectsRef.current.createRipple(x, y, intensity);
-    
-    // 水花效果
-    waterEffectsRef.current.createSplash(x, y, intensity);
-    
-    // 气泡效果
-    if (rarity === 'epic' || rarity === 'legendary') {
-      waterEffectsRef.current.createBubbleStream(x, y, 2000);
-    }
-  };
-  
-  const startEnvironmentEffects = () => {
-    if (!rendererRef.current || !waterEffectsRef.current) return;
-    
-    // 创建浮游生物
-    rendererRef.current.createPlankton();
-    
-    // 定期产生气泡
-    setInterval(() => {
-      const x = Math.random() * window.innerWidth;
-      const y = window.innerHeight - 50;
-      rendererRef.current?.createBubble(x, y);
-    }, 500);
-    
-    // 随机水花效果
-    setInterval(() => {
-      if (Math.random() < 0.3) {
-        const x = Math.random() * window.innerWidth;
-        const y = Math.random() * 200;
-        waterEffectsRef.current?.createRipple(x, y, 0.5);
-      }
-    }, 2000);
-  };
-  
-  const startPerformanceMonitor = () => {
-    let lastTime = performance.now();
     let frames = 0;
+    let lastTime = performance.now();
     
-    const monitor = () => {
+    const measureFPS = () => {
       frames++;
       const currentTime = performance.now();
       
       if (currentTime >= lastTime + 1000) {
         setStats({
-          fishCount: fishSpritesRef.current.length,
-          fps: Math.round(frames * 1000 / (currentTime - lastTime)),
-          particles: rendererRef.current?.app.stage.children.length || 0
+          fishCount: renderer.getFishCount(),
+          fps: Math.round(frames * 1000 / (currentTime - lastTime))
         });
         
-        lastTime = currentTime;
         frames = 0;
+        lastTime = currentTime;
       }
       
-      requestAnimationFrame(monitor);
+      requestAnimationFrame(measureFPS);
     };
     
-    monitor();
-  };
-  
-  const updateStats = () => {
-    setStats(prev => ({
-      ...prev,
-      fishCount: fishSpritesRef.current.length
-    }));
-  };
+    measureFPS();
+    
+    // 自动添加气泡
+    const bubbleInterval = setInterval(() => {
+      if (Math.random() < 0.5) {
+        renderer.createBubble(
+          Math.random() * window.innerWidth,
+          window.innerHeight - 50
+        );
+      }
+    }, 1000);
+    
+    // 清理
+    return () => {
+      clearInterval(bubbleInterval);
+      if (rendererRef.current) {
+        rendererRef.current.destroy();
+      }
+    };
+  }, []);
   
   const handleAddFish = () => {
-    const rarities: Array<'common' | 'rare' | 'epic' | 'legendary'> = 
-      ['common', 'common', 'common', 'rare', 'rare', 'epic', 'legendary'];
-    
-    const config: FishConfig = {
-      type: ['goldfish', 'shark', 'angelfish', 'electric'][Math.floor(Math.random() * 4)],
-      size: 0.8 + Math.random() * 0.4,
-      speed: 1 + Math.random() * 2,
-      rarity: rarities[Math.floor(Math.random() * rarities.length)]
-    };
-    
-    createFish(config);
+    if (rendererRef.current) {
+      rendererRef.current.createSpecialFish(selectedFishType);
+      
+      // 创建涟漪效果
+      rendererRef.current.createRipple(
+        window.innerWidth / 2,
+        window.innerHeight / 2
+      );
+    }
   };
   
-  const handleCreateRipple = () => {
-    const x = window.innerWidth / 2 + (Math.random() - 0.5) * 200;
-    const y = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
-    waterEffectsRef.current?.createRipple(x, y, 1.5);
-    waterEffectsRef.current?.createSplash(x, y, 1);
-  };
-  
-  const handleFeedFish = () => {
-    // 在随机位置创建食物效果
-    for (let i = 0; i < 10; i++) {
-      setTimeout(() => {
-        const x = window.innerWidth / 2 + (Math.random() - 0.5) * 300;
-        const y = 100 + Math.random() * 200;
-        
-        // 创建食物粒子
-        if (rendererRef.current) {
-          const food = new PIXI.Graphics();
-          food.beginFill(0xffaa00);
-          food.drawCircle(0, 0, 3);
-          food.endFill();
-          food.position.set(x, y);
-          
-          rendererRef.current.app.stage.addChild(food);
-          
-          // 下沉动画
-          let vy = 0.5;
-          const sink = () => {
-            food.y += vy;
-            vy += 0.05;
-            
-            // 检查是否被鱼吃掉
-            const eaten = fishSpritesRef.current.some(fish => {
-              const dist = Math.sqrt((fish.x - food.x) ** 2 + (fish.y - food.y) ** 2);
-              if (dist < 50) {
-                fish.flash(0xffff00);
-                waterEffectsRef.current?.createRipple(food.x, food.y, 0.3);
-                return true;
-              }
-              return false;
-            });
-            
-            if (eaten || food.y > window.innerHeight) {
-              rendererRef.current?.app.stage.removeChild(food);
-            } else {
-              requestAnimationFrame(sink);
-            }
-          };
-          
-          sink();
-        }
-      }, i * 100);
+  const handleClick = (e: React.MouseEvent) => {
+    if (rendererRef.current) {
+      const rect = canvasRef.current!.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      rendererRef.current.createRipple(x, y);
+      rendererRef.current.createBubble(x, y);
     }
   };
   
@@ -272,16 +107,17 @@ export default function FishFiGame() {
       {/* 游戏画布 */}
       <canvas 
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full cursor-pointer"
+        onClick={handleClick}
       />
       
       {/* UI 叠加层 */}
       <div className="absolute inset-0 pointer-events-none">
         {/* 顶部状态栏 */}
         <div className="absolute top-0 left-0 right-0 p-4">
-          <div className="bg-black/50 backdrop-blur-md rounded-lg p-4 max-w-4xl mx-auto">
+          <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-              FishFi - 像素鱼元宇宙
+              FishFi - 程序化像素鱼系统
             </h1>
             <div className="flex justify-center gap-8 text-sm">
               <div className="text-cyan-400">
@@ -290,64 +126,58 @@ export default function FishFiGame() {
               <div className="text-green-400">
                 FPS: <span className="text-white font-mono">{stats.fps}</span>
               </div>
-              <div className="text-purple-400">
-                粒子数: <span className="text-white font-mono">{stats.particles}</span>
-              </div>
             </div>
           </div>
         </div>
         
-        {/* 控制按钮 */}
+        {/* 控制面板 */}
         <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
-          <div className="flex justify-center gap-4 max-w-2xl mx-auto">
-            <button 
-              onClick={handleAddFish}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-lg 
-                         shadow-lg hover:shadow-cyan-500/50 transition-all transform hover:scale-105
-                         active:scale-95"
-            >
-              生成新鱼
-            </button>
+          <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 max-w-4xl mx-auto">
+            {/* 鱼类型选择 */}
+            <div className="flex justify-center gap-3 mb-4">
+              {['random', 'goldfish', 'shark', 'pufferfish', 'angelfish', 'neon'].map(type => (
+                <button
+                  key={type}
+                  onClick={() => setSelectedFishType(type)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 ${
+                    selectedFishType === type
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
             
-            <button 
-              onClick={handleCreateRipple}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg 
-                         shadow-lg hover:shadow-purple-500/50 transition-all transform hover:scale-105
-                         active:scale-95"
-            >
-              创建涟漪
-            </button>
-            
-            <button 
-              onClick={handleFeedFish}
-              className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-lg 
-                         shadow-lg hover:shadow-yellow-500/50 transition-all transform hover:scale-105
-                         active:scale-95"
-            >
-              投喂食物
-            </button>
+            {/* 生成按钮 */}
+            <div className="flex justify-center">
+              <button 
+                onClick={handleAddFish}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-lg 
+                           shadow-lg hover:shadow-emerald-500/50 transition-all transform hover:scale-105
+                           active:scale-95"
+              >
+                生成{selectedFishType === 'random' ? '随机' : selectedFishType}鱼
+              </button>
+            </div>
           </div>
         </div>
         
-        {/* 稀有度说明 */}
-        <div className="absolute bottom-20 left-4 bg-black/50 backdrop-blur-md rounded-lg p-3 pointer-events-auto">
-          <div className="text-xs space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50"></div>
-              <span className="text-gray-300">普通</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-400 rounded-full shadow-lg shadow-green-400/50"></div>
-              <span className="text-gray-300">稀有</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"></div>
-              <span className="text-gray-300">史诗</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-yellow-400 rounded-full shadow-lg shadow-yellow-400/50 animate-pulse"></div>
-              <span className="text-gray-300">传说</span>
-            </div>
+        {/* 特征说明 */}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/70 backdrop-blur-sm rounded-lg p-4 pointer-events-auto max-w-xs">
+          <h3 className="text-cyan-400 font-bold mb-2">鱼类特征</h3>
+          <div className="text-xs space-y-2 text-gray-300">
+            <div><span className="text-yellow-400">金鱼:</span> 圆润体型，渐变色，正弦游动</div>
+            <div><span className="text-blue-400">鲨鱼:</span> 流线型，滑翔游动，大尾鳍</div>
+            <div><span className="text-orange-400">河豚:</span> 球形，爆发游动，斑点图案</div>
+            <div><span className="text-purple-400">神仙鱼:</span> 高身形，条纹，Z字游动</div>
+            <div><span className="text-green-400">霓虹鱼:</span> 小巧，发光，快速游动</div>
+          </div>
+          
+          <h3 className="text-cyan-400 font-bold mt-4 mb-2">交互提示</h3>
+          <div className="text-xs text-gray-300">
+            点击画面创建涟漪和气泡效果
           </div>
         </div>
       </div>
