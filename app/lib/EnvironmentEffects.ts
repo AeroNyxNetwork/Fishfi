@@ -3,16 +3,16 @@ import { AdvancedBloomFilter } from '@pixi/filter-advanced-bloom';
 
 export class EnvironmentEffects {
   private app: PIXI.Application;
-  private weatherContainer: PIXI.Container;
-  private lightingContainer: PIXI.Container;
+  private weatherContainer!: PIXI.Container;
+  private lightingContainer!: PIXI.Container;
   
   // 日夜循环
   private timeOfDay: number = 0.5; // 0 = 夜晚, 0.5 = 白天, 1 = 夜晚
-  private sunMoonSprite: PIXI.Graphics;
+  private sunMoonSprite!: PIXI.Graphics;
   
   // 天气系统
   private currentWeather: 'clear' | 'rain' | 'storm' = 'clear';
-  private rainParticles: PIXI.ParticleContainer;
+  private rainParticles!: PIXI.ParticleContainer;
   
   // 动态背景
   private backgroundLayers: PIXI.Container[] = [];
