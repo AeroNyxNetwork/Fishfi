@@ -108,7 +108,7 @@ export default function NFTFishGallery() {
           <div className="space-y-2 text-sm text-gray-300">
             <div className="flex items-start gap-2">
               <span className="text-purple-400">✨</span>
-              <span>Click "Generate Artistic Fish" to create unique NFT-worthy fish</span>
+              <span>Click &quot;Generate Artistic Fish&quot; to create unique NFT-worthy fish</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-purple-400">🖱️</span>
@@ -161,6 +161,7 @@ export default function NFTFishGallery() {
               <div>• Special traits & visual effects</div>
               <div>• Particle effects for rare fish</div>
               <div>• Each fish has unique DNA</div>
+              <div>• Ready for NFT minting</div>
             </div>
           </div>
         </div>
