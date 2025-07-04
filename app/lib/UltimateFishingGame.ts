@@ -475,6 +475,13 @@ export class UltimateFish extends PIXI.Container {
     }, 100);
   }
   
+  // 设置鱼的色调
+  public setTint(color: number) {
+    if (this.bodyContainer && this.bodyContainer.children[0]) {
+      this.bodyContainer.children[0].tint = color;
+    }
+  }
+  
   private showDamage(damage: number) {
     const text = new PIXI.Text(`-${damage}`, {
       fontFamily: 'Arial',
