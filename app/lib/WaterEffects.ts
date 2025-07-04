@@ -3,17 +3,17 @@ import { ShockwaveFilter } from '@pixi/filter-shockwave';
 
 export class WaterEffects {
   private app: PIXI.Application;
-  private waterContainer: PIXI.Container;
-  private displacementSprite: PIXI.Sprite;
-  private refractionSprite: PIXI.Sprite;
+  private waterContainer!: PIXI.Container;
+  private displacementSprite!: PIXI.Sprite;
+  private refractionSprite!: PIXI.Sprite;
   private ripples: ShockwaveFilter[] = [];
   
   // 深度雾效
-  private depthGradient: PIXI.Graphics;
+  private depthGradient!: PIXI.Graphics;
   
   // 水面效果
-  private surfaceReflection: PIXI.Graphics;
-  private foamParticles: PIXI.Container;
+  private surfaceReflection!: PIXI.Graphics;
+  private foamParticles!: PIXI.Container;
   
   constructor(app: PIXI.Application) {
     this.app = app;
