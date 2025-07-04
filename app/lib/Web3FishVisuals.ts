@@ -121,14 +121,14 @@ export class Web3FishVisuals {
     const auraRadius = 80 * size;
     
     // Multi-layered aura effect
-    const auraColors = {
+    const auraColors: Record<string, number[]> = {
       rare: [0x7b3ff2, 0x5a2fb8],
       epic: [0xff6b6b, 0xff4757],
       legendary: [0xffd93d, 0xffa502],
       mythic: [0xe056fd, 0x8e44ad, 0x3498db]
     };
     
-    const colors = auraColors[config.type] || [0xffffff];
+    const colors = auraColors[config.type as string] || [0xffffff];
     
     // Create pulsing aura rings
     colors.forEach((color, index) => {
@@ -152,7 +152,7 @@ export class Web3FishVisuals {
     shadow.beginFill(0x000000, 0.3);
     
     // Dynamic shadow shape based on fish type
-    const shadowScale = {
+    const shadowScale: Record<string, { x: number, y: number }> = {
       elliptical: { x: 60, y: 30 },
       streamlined: { x: 80, y: 25 },
       aggressive: { x: 100, y: 35 },
@@ -160,7 +160,7 @@ export class Web3FishVisuals {
       ethereal: { x: 120, y: 40 }
     };
     
-    const scale = shadowScale[config.visual.bodyShape] || { x: 60, y: 30 };
+    const scale = shadowScale[config.visual.bodyShape as string] || { x: 60, y: 30 };
     shadow.drawEllipse(0, 50 * size, scale.x * size, scale.y * size);
     shadow.endFill();
     
@@ -246,14 +246,14 @@ export class Web3FishVisuals {
     
     // Iris with gradient
     const iris = new PIXI.Graphics();
-    const irisColors = {
+    const irisColors: Record<string, number> = {
       common: 0x4a90e2,
       rare: 0x9b59b6,
       epic: 0xe74c3c,
       legendary: 0xf1c40f,
       mythic: 0xe056fd
     };
-    iris.beginFill(irisColors[config.type] || 0x4a90e2);
+    iris.beginFill(irisColors[config.type as string] || 0x4a90e2);
     iris.drawCircle(0, 0, 6 * size);
     iris.endFill();
     
@@ -532,7 +532,7 @@ export class Web3FishVisuals {
   private static createFins(style: string, size: number): PIXI.Container {
     const finsContainer = new PIXI.Container();
     
-    const finStyles = {
+    const finStyles: Record<string, any> = {
       simple: {
         dorsal: { width: 20, height: 30, curve: 0.2 },
         pectoral: { width: 30, height: 20, curve: 0.3 },
@@ -560,7 +560,7 @@ export class Web3FishVisuals {
       }
     };
     
-    const finConfig = finStyles[style] || finStyles.simple;
+    const finConfig = finStyles[style as string] || finStyles.simple;
     
     // Dorsal fin
     const dorsalFin = new PIXI.Graphics();
@@ -585,7 +585,7 @@ export class Web3FishVisuals {
   
   // Create particle system
   private static createParticleSystem(type: string, size: number): any {
-    const systems = {
+    const systems: Record<string, any> = {
       bubbles: {
         texture: this.createBubbleTexture(),
         config: {
@@ -638,7 +638,7 @@ export class Web3FishVisuals {
       }
     };
     
-    return systems[type] || systems.bubbles;
+    return systems[type as string] || systems.bubbles;
   }
   
   // Texture creation helpers
@@ -924,14 +924,14 @@ export class Web3FishVisuals {
   }
   
   private static getRarityColor(rarity: string): number {
-    const colors = {
+    const colors: Record<string, number> = {
       common: 0x00d4ff,
       rare: 0x7b3ff2,
       epic: 0xff6b6b,
       legendary: 0xffd93d,
       mythic: 0xe056fd
     };
-    return colors[rarity] || 0xffffff;
+    return colors[rarity as string] || 0xffffff;
   }
   
   // Advanced animation system
