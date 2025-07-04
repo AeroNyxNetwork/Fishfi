@@ -52,11 +52,7 @@ export default function FishFiGame() {
       </div>
     </div>
   );
-}">鲨鱼</span>
-                  <span className="text-orange-400">30x</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-indigo-400">剑鱼</span>
+}">剑鱼</span>
                   <span className="text-orange-400">40x</span>
                 </div>
               </div>
