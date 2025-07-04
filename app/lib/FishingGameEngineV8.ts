@@ -603,7 +603,7 @@ export class FishingGameEngineV8 {
     return sizes[rarity] || 1;
   }
   
-  private showReward(amount: number, position: PIXI.IPointData): void {
+  private showReward(amount: number, position: PIXI.PointData): void {
     const text = new PIXI.Text({
       text: `+${amount} 💰`,
       style: {
@@ -633,7 +633,7 @@ export class FishingGameEngineV8 {
     PIXI.Ticker.shared.add(animate);
   }
   
-  private createDeathEffect(position: PIXI.IPointData): void {
+  private createDeathEffect(position: PIXI.PointData): void {
     // Create particle burst
     for (let i = 0; i < 10; i++) {
       const particle = new PIXI.Graphics();
@@ -738,7 +738,7 @@ export class FishingGameEngineV8 {
     }
   }
   
-  private createHitEffect(position: PIXI.IPointData): void {
+  private createHitEffect(position: PIXI.PointData): void {
     const ring = new PIXI.Graphics();
     ring
       .circle(0, 0, 20)
