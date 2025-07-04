@@ -4,15 +4,15 @@ import { AdvancedBloomFilter } from '@pixi/filter-advanced-bloom';
 
 export class FishRenderer {
   public app: PIXI.Application;  // 改为 public
-  private lightingContainer: PIXI.Container;
-  private fishContainer: PIXI.Container;
-  private particleContainer: PIXI.ParticleContainer;
-  private waterOverlay: PIXI.Graphics;
+  private lightingContainer!: PIXI.Container;
+  private fishContainer!: PIXI.Container;
+  private particleContainer!: PIXI.ParticleContainer;
+  private waterOverlay!: PIXI.Graphics;
   
   // 光照系统
-  private sunlight: PIXI.Graphics;
-  private causticTexture: PIXI.Texture;
-  private causticSprite: PIXI.TilingSprite;
+  private sunlight!: PIXI.Graphics;
+  private causticTexture!: PIXI.Texture;
+  private causticSprite!: PIXI.TilingSprite;
   
   constructor(canvas: HTMLCanvasElement) {
     this.app = new PIXI.Application({
