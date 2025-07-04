@@ -31,8 +31,8 @@ export class ProceduralPixelFish extends PIXI.Container {
   private pixelSize: number = 4;
   
   // 缓存系统
-  private bodyTexture: PIXI.Texture;
-  private bodySprite: PIXI.Sprite;
+  private bodyTexture!: PIXI.Texture;
+  private bodySprite!: PIXI.Sprite;
   private finSprites: PIXI.Sprite[] = [];
   
   // 动画状态
