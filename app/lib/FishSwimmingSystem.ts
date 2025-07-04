@@ -113,8 +113,8 @@ interface ScreenBounds {
 }
 
 /**
-   * Spawn event definition
-   */
+ * Spawn event definition
+ */
 interface SpawnEvent {
   time: number;
   category: FishCategory;
@@ -124,6 +124,7 @@ interface SpawnEvent {
   behavior: Partial<FishBehavior>;
   entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
 }
+
 /**
  * Main fish swimming system
  */
@@ -133,8 +134,12 @@ export class FishSwimmingSystem {
   private activeFish: Map<string, ActiveFish> = new Map();
   private formations: Map<string, FormationConfig> = new Map();
   
-  // Screen boundaries
-  private bounds: ScreenBounds;
+  // Screen boundaries - initialize with default values
+  private bounds: ScreenBounds = {
+    visibleArea: new PIXI.Rectangle(0, 0, 800, 600),
+    spawnArea: new PIXI.Rectangle(-150, -150, 1100, 900),
+    despawnArea: new PIXI.Rectangle(-200, -200, 1200, 1000)
+  };
   
   // Spawn management
   private spawnTimer: number = 0;
@@ -152,8 +157,6 @@ export class FishSwimmingSystem {
   private readonly SPAWN_MARGIN = 150;
   private readonly DESPAWN_MARGIN = 200;
   private readonly BASE_SPEED = 60; // pixels per second
-  
-  
 
   constructor(app: PIXI.Application, container: PIXI.Container) {
     this.app = app;
