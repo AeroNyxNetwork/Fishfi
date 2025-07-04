@@ -3,7 +3,7 @@ import { GlowFilter } from '@pixi/filter-glow';
 import { AdvancedBloomFilter } from '@pixi/filter-advanced-bloom';
 
 export class FishRenderer {
-  private app: PIXI.Application;
+  public app: PIXI.Application;  // 改为 public
   private lightingContainer: PIXI.Container;
   private fishContainer: PIXI.Container;
   private particleContainer: PIXI.ParticleContainer;
