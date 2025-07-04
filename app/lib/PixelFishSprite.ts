@@ -10,10 +10,10 @@ export interface FishConfig {
 
 export class PixelFishSprite extends PIXI.Container {
   private config: FishConfig;
-  private bodyContainer: PIXI.Container;
-  private finContainer: PIXI.Container;
-  private eyeSprite: PIXI.Graphics;
-  private scaleShineContainer: PIXI.Container;
+  private bodyContainer!: PIXI.Container;
+  private finContainer!: PIXI.Container;
+  private eyeSprite!: PIXI.Graphics;
+  private scaleShineContainer!: PIXI.Container;
   
   // 动画参数
   private time: number = 0;
@@ -21,8 +21,8 @@ export class PixelFishSprite extends PIXI.Container {
   private velocity: { x: number; y: number };
   
   // 视觉效果
-  private glowFilter: GlowFilter;
-  private shadowSprite: PIXI.Graphics;
+  private glowFilter!: GlowFilter;
+  private shadowSprite!: PIXI.Graphics;
   
   constructor(config: FishConfig) {
     super();
