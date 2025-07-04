@@ -716,11 +716,16 @@ export class NFTGalleryEngine {
   private selectFish(fish: ArtisticFishPixi): void {
     // Deselect previous
     if (this.selectedFish) {
-      this.selectedFish.scale.set(4);
+      // Reset to original scale (considering the fish's gene-based scale)
+      const prevScaleFactor = 0.3 + (this.selectedFish.dna.genes.size * 0.4);
+      this.selectedFish.scale.set(prevScaleFactor);
     }
     
     this.selectedFish = fish;
-    fish.scale.set(5);
+    
+    // Scale up selected fish
+    const scaleFactor = 0.3 + (fish.dna.genes.size * 0.4);
+    fish.scale.set(scaleFactor * 1.2);
     
     this.updateInfoPanel(fish);
   }
@@ -741,10 +746,11 @@ export class NFTGalleryEngine {
     const dna = this.generateFishDNA();
     const fish = new ArtisticFishPixi(dna, this.app);
     
-    // Random position
+    // Center position with some randomness
+    const margin = 200;
     fish.position.set(
-      100 + Math.random() * (this.app.screen.width - 200),
-      100 + Math.random() * (this.app.screen.height - 200)
+      margin + Math.random() * (this.app.screen.width - margin * 2),
+      margin + Math.random() * (this.app.screen.height - margin * 2)
     );
     
     this.aquarium.addChild(fish);
@@ -1060,7 +1066,9 @@ export class NFTGalleryEngine {
     // Create mini fish preview
     const fishPreview = new ArtisticFishPixi(fishDNA, this.app);
     fishPreview.position.set(70, 60);
-    fishPreview.scale.set(2);
+    // Scale appropriately for gallery cell
+    const previewScale = 0.15 + (fishDNA.genes.size * 0.1);
+    fishPreview.scale.set(previewScale);
     
     cell.addChild(bg);
     cell.addChild(fishPreview);
@@ -1158,24 +1166,6 @@ export class NFTGalleryEngine {
     // Update fish
     this.fishes.forEach(fish => {
       fish.update(deltaTime);
-      
-      // Boundary check
-      const bounds = fish.getBounds();
-      const margin = 50;
-      
-      if (bounds.x < -margin || bounds.x + bounds.width > this.app.screen.width + margin ||
-          bounds.y < -margin || bounds.y + bounds.height > this.app.screen.height + margin) {
-        // Change direction when hitting boundaries
-        const centerX = this.app.screen.width / 2;
-        const centerY = this.app.screen.height / 2;
-        const angle = Math.atan2(centerY - fish.y, centerX - fish.x);
-        fish.changeDirection(angle + (Math.random() - 0.5) * Math.PI / 2);
-      }
-      
-      // Random direction changes
-      if (Math.random() < 0.002 * deltaTime) {
-        fish.changeDirection();
-      }
     });
   }
 
