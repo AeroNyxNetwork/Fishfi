@@ -1,18 +1,21 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { FishingGameEngine } from '../lib/FishingGameEngine';
+import { FishingGameEngineV8 } from '../lib/FishingGameEngineV8';
 
 export default function FishFiGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameRef = useRef<FishingGameEngine | null>(null);
+  const gameRef = useRef<FishingGameEngineV8 | null>(null);
   
   useEffect(() => {
     if (!canvasRef.current) return;
     
-    // 初始化游戏引擎
-    const game = new FishingGameEngine(canvasRef.current);
+    // 初始化 PIXI v8 游戏引擎
+    const game = new FishingGameEngineV8(canvasRef.current);
     gameRef.current = game;
+    
+    // Start the game
+    game.init().catch(console.error);
     
     // 清理
     return () => {
