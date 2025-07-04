@@ -79,9 +79,10 @@ const FISH_TEMPLATES: Record<string, FishTemplate> = {
     description: 'Elegant flowing fins',
     bodyShape: 'round',
     baseColors: {
-      primary: '#FFD700',
-      secondary: '#FFA500',
-      accent: '#FF6347'
+      primary: '#1a0033',
+      secondary: '#6600cc',
+      accent: '#ff00ff',
+      glow: '#9400D3'
     },
     features: {
       bodyRatio: { w: 1.2, h: 1.0 },
