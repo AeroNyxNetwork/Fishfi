@@ -106,7 +106,7 @@ export class FishingGameEngineV8 {
     this.createBubbles();
   }
   
-  private async createGradientTexture(colors: number[], width: number, height: number): Promise<PIXI.Texture> {
+  private createGradientTexture(colors: number[], width: number, height: number): Promise<PIXI.Texture> {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -124,7 +124,7 @@ export class FishingGameEngineV8 {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     
-    return PIXI.Texture.from(canvas);
+    return Promise.resolve(PIXI.Texture.from(canvas));
   }
   
   private createBubbles(): void {
@@ -206,7 +206,7 @@ export class FishingGameEngineV8 {
     this.gameContainer.addChild(this.waterOverlay);
   }
   
-  private async createDisplacementTexture(): Promise<PIXI.Texture> {
+  private createDisplacementTexture(): Promise<PIXI.Texture> {
     const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -233,10 +233,10 @@ export class FishingGameEngineV8 {
     }
     
     ctx.putImageData(imageData, 0, 0);
-    return PIXI.Texture.from(canvas);
+    return Promise.resolve(PIXI.Texture.from(canvas));
   }
   
-  private async createWaterOverlayTexture(): Promise<PIXI.Texture> {
+  private createWaterOverlayTexture(): Promise<PIXI.Texture> {
     const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -257,7 +257,7 @@ export class FishingGameEngineV8 {
       ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     }
     
-    return PIXI.Texture.from(canvas);
+    return Promise.resolve(PIXI.Texture.from(canvas));
   }
   
   private createUI(): void {
@@ -481,7 +481,7 @@ export class FishingGameEngineV8 {
     PIXI.Ticker.shared.add(fadeOut);
   }
   
-  private async createFishTexture(): Promise<PIXI.Texture> {
+  private createFishTexture(): Promise<PIXI.Texture> {
     const canvas = document.createElement('canvas');
     canvas.width = 100;
     canvas.height = 60;
@@ -512,7 +512,7 @@ export class FishingGameEngineV8 {
     ctx.arc(67, 25, 3, 0, Math.PI * 2);
     ctx.fill();
     
-    return PIXI.Texture.from(canvas);
+    return Promise.resolve(PIXI.Texture.from(canvas));
   }
   
   private async startFishSpawning(): Promise<void> {
@@ -571,7 +571,7 @@ export class FishingGameEngineV8 {
   }
   
   private getRewardByRarity(rarity: string): number {
-    const rewards = {
+    const rewards: Record<string, number> = {
       common: 10,
       rare: 50,
       epic: 200,
@@ -582,7 +582,7 @@ export class FishingGameEngineV8 {
   }
   
   private getHealthByRarity(rarity: string): number {
-    const health = {
+    const health: Record<string, number> = {
       common: 10,
       rare: 25,
       epic: 50,
@@ -593,7 +593,7 @@ export class FishingGameEngineV8 {
   }
   
   private getSizeByRarity(rarity: string): number {
-    const sizes = {
+    const sizes: Record<string, number> = {
       common: 0.8,
       rare: 1,
       epic: 1.2,
