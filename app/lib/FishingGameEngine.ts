@@ -553,8 +553,8 @@ export class FishingGameEngine {
       let nearestFish: UltimateFish | null = null;
       let nearestDistance = Infinity;
       
-      this.fishes.forEach(fish => {
-        if (hitFishes.includes(fish)) return;
+      for (const fish of this.fishes) {
+        if (hitFishes.includes(fish)) continue;
         
         const dx = fish.x - currentPos.x;
         const dy = fish.y - currentPos.y;
@@ -564,18 +564,16 @@ export class FishingGameEngine {
           nearestFish = fish;
           nearestDistance = distance;
         }
-      });
+      }
       
-      if (nearestFish !== null && nearestFish !== undefined) {
-        const targetFish = nearestFish; // 创建一个明确类型的局部变量
-        
+      if (nearestFish) {
         // 绘制闪电
         lightning.moveTo(currentPos.x, currentPos.y);
-        lightning.lineTo(targetFish.x, targetFish.y);
+        lightning.lineTo(nearestFish.x, nearestFish.y);
         
-        targetFish.takeDamage(10);
-        hitFishes.push(targetFish);
-        currentPos = new PIXI.Point(targetFish.x, targetFish.y);
+        nearestFish.takeDamage(10);
+        hitFishes.push(nearestFish);
+        currentPos = new PIXI.Point(nearestFish.x, nearestFish.y);
       } else {
         break;
       }
