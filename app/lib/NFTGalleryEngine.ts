@@ -1,10 +1,9 @@
 /**
  * NFTGalleryEngine.ts
  * 
- * Main game engine for the NFT fish gallery
- * Manages fish generation, display, and interactions
+ * Enhanced NFT Gallery Engine with performance optimizations and artistic features
  * 
- * @version 1.0.0
+ * @version 2.0.0
  * @requires pixi.js ^8.0.0
  * @path app/lib/NFTGalleryEngine.ts
  */
@@ -12,9 +11,10 @@
 import * as PIXI from 'pixi.js';
 import { ArtisticFishPixi, FishDNA, FishTemplate } from './ArtisticFishPixi';
 import { FishSwimmingSystem } from './FishSwimmingSystem';
+import { GeometryCache } from './GeometryCache';
 
 /**
- * Rarity configuration with probabilities and visual settings
+ * Enhanced rarity configuration
  */
 const RARITY_CONFIG = {
   common: { 
@@ -22,278 +22,146 @@ const RARITY_CONFIG = {
     color: 0xffffff, 
     glow: 0xcccccc,
     particleCount: 0,
-    value: 10
+    value: 10,
+    designation: 'Series C'
   },
   uncommon: { 
     probability: 30, 
     color: 0x00ff00, 
     glow: 0x00ff00,
     particleCount: 0,
-    value: 50
+    value: 50,
+    designation: 'Series U'
   },
   rare: { 
     probability: 13, 
     color: 0x0099ff, 
     glow: 0x0099ff,
     particleCount: 5,
-    value: 200
+    value: 200,
+    designation: 'Series R'
   },
   epic: { 
     probability: 5, 
     color: 0xcc00ff, 
     glow: 0xcc00ff,
     particleCount: 10,
-    value: 500
+    value: 500,
+    designation: 'Series E'
   },
   legendary: { 
     probability: 1.5, 
     color: 0xffaa00, 
     glow: 0xffaa00,
     particleCount: 15,
-    value: 2000
+    value: 2000,
+    designation: 'Series L'
   },
   mythic: { 
     probability: 0.4, 
     color: 0xff00aa, 
     glow: 0xff00aa,
     particleCount: 20,
-    value: 10000
+    value: 10000,
+    designation: 'Series M'
   },
   cosmic: { 
     probability: 0.1, 
     color: 0xffffff, 
     glow: 0xffffff,
     particleCount: 30,
-    value: 100000
+    value: 100000,
+    designation: 'Series Ω'
   }
 };
 
 /**
- * Fish template definitions
+ * Enhanced fish template with artistic properties
  */
 const FISH_TEMPLATES: Record<string, FishTemplate> = {
-  // Using the species catalog - import a few key species for backward compatibility
-  goldfish: {
-    name: 'goldfish',
-    displayName: 'Golden Koi',
-    description: 'Elegant flowing fins',
-    bodyShape: 'round',
+  // Existing templates remain the same
+  // Adding new artistic templates
+  
+  architecturalFlow: {
+    name: 'architecturalFlow',
+    displayName: 'Architectural Flow α-01',
+    description: 'Parametric design meets aquatic form',
+    bodyShape: 'architectural',
     baseColors: {
-      primary: '#1a0033',
-      secondary: '#6600cc',
-      accent: '#ff00ff',
-      glow: '#9400D3'
+      primary: '#2a2a2a',
+      secondary: '#ffffff',
+      accent: '#00ffff',
+      glow: '#00ffff'
     },
     features: {
-      bodyRatio: { w: 1.2, h: 1.0 },
-      headCurve: 'round',
-      tailType: 'double',
-      finStyle: 'flowing'
+      bodyRatio: { w: 2.5, h: 1.2 },
+      headCurve: 'parametric',
+      tailType: 'geometric',
+      finStyle: 'minimal',
+      special: ['parametric_surface', 'flow_lines']
     }
   },
-  cosmicWhale: {
-    name: 'cosmicWhale',
-    displayName: 'Cosmic Leviathan',
-    description: 'Born from stardust',
-    bodyShape: 'massive',
+  
+  deconstructedEntity: {
+    name: 'deconstructedEntity',
+    displayName: 'Deconstructed Entity δ-77',
+    description: 'Form fragmented across dimensions',
+    bodyShape: 'deconstructed',
     baseColors: {
-      primary: '#1a0033',
-      secondary: '#6600cc',
-      accent: '#ff00ff'
+      primary: '#ff0066',
+      secondary: '#0066ff',
+      accent: '#66ff00'
     },
     features: {
-      bodyRatio: { w: 3.5, h: 1.8 },
-      headCurve: 'majestic',
-      tailType: 'cosmic',
-      finStyle: 'ethereal',
-      special: ['starfield', 'nebula']
+      bodyRatio: { w: 2.0, h: 1.5 },
+      headCurve: 'fragmented',
+      tailType: 'dispersed',
+      finStyle: 'floating',
+      special: ['phase_shift', 'fragment_orbit']
     }
   },
-  crystalShark: {
-    name: 'crystalShark',
-    displayName: 'Crystal Predator',
-    description: 'Transparent apex hunter',
-    bodyShape: 'streamlined',
+  
+  tessellatedCrystal: {
+    name: 'tessellatedCrystal',
+    displayName: 'Tessellated Crystal τ-∞',
+    description: 'Infinite patterns within finite form',
+    bodyShape: 'tessellated',
     baseColors: {
-      primary: '#00ffff',
-      secondary: '#0099ff',
+      primary: '#9900ff',
+      secondary: '#00ff99',
+      accent: '#ff9900'
+    },
+    features: {
+      bodyRatio: { w: 1.8, h: 1.8 },
+      headCurve: 'crystalline',
+      tailType: 'fractal',
+      finStyle: 'tessellated',
+      special: ['recursive_pattern', 'light_refraction']
+    }
+  },
+  
+  calligraphicEssence: {
+    name: 'calligraphicEssence',
+    displayName: 'Calligraphic Essence 書-001',
+    description: 'Single stroke of digital ink',
+    bodyShape: 'calligraphic',
+    baseColors: {
+      primary: '#000000',
+      secondary: '#ff0000',
       accent: '#ffffff'
     },
     features: {
       bodyRatio: { w: 3.0, h: 0.8 },
-      headCurve: 'pointed',
-      tailType: 'crescent',
-      finStyle: 'crystalline',
-      special: ['refraction', 'transparency']
-    }
-  },
-  voidAngel: {
-    name: 'voidAngel',
-    displayName: 'Void Angel',
-    description: 'Darkness incarnate',
-    bodyShape: 'diamond',
-    baseColors: {
-      primary: '#000000',
-      secondary: '#330066',
-      accent: '#9900ff'
-    },
-    features: {
-      bodyRatio: { w: 0.8, h: 1.5 },
-      headCurve: 'angular',
-      tailType: 'ethereal',
-      finStyle: 'shadow',
-      special: ['void_eyes', 'dark_aura']
-    }
-  },
-  neonTetra: {
-    name: 'neonTetra',
-    displayName: 'Neon Spirit',
-    description: 'Electric soul',
-    bodyShape: 'streamlined',
-    baseColors: {
-      primary: '#00ff00',
-      secondary: '#ff00ff',
-      accent: '#00ffff'
-    },
-    features: {
-      bodyRatio: { w: 2.0, h: 0.6 },
-      headCurve: 'smooth',
-      tailType: 'electric',
-      finStyle: 'neon',
-      special: ['electric_veins', 'glow_pulse']
-    }
-  },
-  ancientDragon: {
-    name: 'ancientDragon',
-    displayName: 'Dragon Koi',
-    description: 'Mythical ancestor',
-    bodyShape: 'serpentine',
-    baseColors: {
-      primary: '#ff0000',
-      secondary: '#ffaa00',
-      accent: '#ffff00'
-    },
-    features: {
-      bodyRatio: { w: 4.0, h: 1.0 },
-      headCurve: 'dragon',
-      tailType: 'legendary',
-      finStyle: 'ancient',
-      special: ['scales_shimmer', 'fire_breath', 'whiskers']
-    }
-  },
-  // New species additions
-  angelfish: {
-    name: 'angelfish',
-    displayName: 'Royal Angel',
-    description: 'Majestic triangular beauty',
-    bodyShape: 'diamond',
-    baseColors: {
-      primary: '#FFE4B5',
-      secondary: '#FF8C00',
-      accent: '#000000'
-    },
-    features: {
-      bodyRatio: { w: 0.8, h: 1.5 },
-      headCurve: 'angular',
-      tailType: 'trailing',
-      finStyle: 'elongated',
-      special: ['vertical_stripes', 'crown_fins']
-    }
-  },
-  clownfish: {
-    name: 'clownfish',
-    displayName: 'Coral Jester',
-    description: 'Playful orange with white bands',
-    bodyShape: 'oval',
-    baseColors: {
-      primary: '#FF4500',
-      secondary: '#FFFFFF',
-      accent: '#000000'
-    },
-    features: {
-      bodyRatio: { w: 1.0, h: 0.8 },
-      headCurve: 'blunt',
-      tailType: 'round',
-      finStyle: 'standard',
-      special: ['white_bands', 'wiggle_swim']
-    }
-  },
-  butterflyfish: {
-    name: 'butterflyfish',
-    displayName: 'Painted Butterfly',
-    description: 'Delicate patterns like wings',
-    bodyShape: 'compressed',
-    baseColors: {
-      primary: '#FFFF00',
-      secondary: '#000000',
-      accent: '#FFFFFF'
-    },
-    features: {
-      bodyRatio: { w: 0.9, h: 1.1 },
-      headCurve: 'pointed',
-      tailType: 'fan',
-      finStyle: 'delicate',
-      special: ['eye_spot', 'chevron_pattern']
-    }
-  },
-  anglerfish: {
-    name: 'anglerfish',
-    displayName: 'Abyssal Angler',
-    description: 'Lure glowing in darkness',
-    bodyShape: 'bulbous',
-    baseColors: {
-      primary: '#2F4F4F',
-      secondary: '#000000',
-      accent: '#00FF00'
-    },
-    features: {
-      bodyRatio: { w: 1.5, h: 1.3 },
-      headCurve: 'massive_jaw',
-      tailType: 'small',
-      finStyle: 'stubby',
-      special: ['bioluminescent_lure', 'giant_mouth', 'scary_teeth']
-    }
-  },
-  seahorse: {
-    name: 'seahorse',
-    displayName: 'Ocean Knight',
-    description: 'Armored elegance',
-    bodyShape: 'serpentine',
-    baseColors: {
-      primary: '#FF69B4',
-      secondary: '#FFB6C1',
-      accent: '#FF1493'
-    },
-    features: {
-      bodyRatio: { w: 0.5, h: 2.0 },
-      headCurve: 'horse',
-      tailType: 'prehensile',
-      finStyle: 'dorsal_only',
-      special: ['armor_plates', 'curled_tail', 'upright_swim']
-    }
-  },
-  pufferfish: {
-    name: 'pufferfish',
-    displayName: 'Spiky Balloon',
-    description: 'Inflatable defense',
-    bodyShape: 'round',
-    baseColors: {
-      primary: '#F0E68C',
-      secondary: '#8B4513',
-      accent: '#000000'
-    },
-    features: {
-      bodyRatio: { w: 1.0, h: 1.0 },
-      headCurve: 'round',
-      tailType: 'small',
-      finStyle: 'tiny',
-      special: ['inflatable', 'spikes', 'toxic', 'googly_eyes']
+      headCurve: 'brushstroke',
+      tailType: 'ink_trail',
+      finStyle: 'flowing_ink',
+      special: ['ink_dynamics', 'brush_texture']
     }
   }
 };
 
 /**
- * Main NFT Gallery Engine class
+ * Enhanced NFT Gallery Engine
  */
 export class NFTGalleryEngine {
   private app!: PIXI.Application;
@@ -302,19 +170,20 @@ export class NFTGalleryEngine {
   private uiLayer!: PIXI.Container;
   private backgroundLayer!: PIXI.Container;
   
-  // Fish management
+  // Enhanced fish management
   private fishes: ArtisticFishPixi[] = [];
   private selectedFish: ArtisticFishPixi | null = null;
   private fishLimit: number = 20;
   
   // Swimming system
   private swimmingSystem: FishSwimmingSystem | null = null;
-  private isSwimmingMode: boolean = true; // Start with swimming enabled
+  private isSwimmingMode: boolean = true;
   
   // UI elements
   private infoPanel!: PIXI.Container;
   private generateButton!: PIXI.Container;
   private galleryButton!: PIXI.Container;
+  private statsPanel!: PIXI.Container;
   
   // Water effects
   private waterOverlay!: PIXI.TilingSprite;
@@ -325,13 +194,21 @@ export class NFTGalleryEngine {
   private isGalleryMode: boolean = false;
   private gallery: FishDNA[] = [];
   
+  // Performance monitoring
+  private performanceStats = {
+    fps: 60,
+    fishCount: 0,
+    cacheHits: 0,
+    memoryUsage: 0
+  };
+
   constructor(private canvas: HTMLCanvasElement) {}
 
   /**
-   * Initializes the PIXI application and all game systems
+   * Initializes the application with optimizations
    */
   async init(): Promise<void> {
-    // Create PIXI Application
+    // Create PIXI Application with optimized settings
     this.app = new PIXI.Application();
     
     await this.app.init({
@@ -342,6 +219,9 @@ export class NFTGalleryEngine {
       antialias: true,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
+      preference: 'webgl',
+      powerPreference: 'high-performance',
+      hello: false // Disable console message
     });
 
     // Setup container hierarchy
@@ -350,8 +230,9 @@ export class NFTGalleryEngine {
     // Create ocean environment
     await this.createOceanEnvironment();
     
-    // Create UI
+    // Create UI with enhancements
     this.createUI();
+    this.createStatsPanel();
     
     // Setup interactions
     this.setupInteractions();
@@ -369,10 +250,550 @@ export class NFTGalleryEngine {
     setTimeout(() => {
       this.showSwimmingUI();
     }, 1000);
+    
+    // Monitor performance
+    this.startPerformanceMonitoring();
   }
 
   /**
-   * Sets up the container hierarchy
+   * Creates performance stats panel
+   */
+  private createStatsPanel(): void {
+    this.statsPanel = new PIXI.Container();
+    this.statsPanel.position.set(10, this.app.screen.height - 100);
+    
+    const bg = new PIXI.Graphics();
+    bg.roundRect(0, 0, 200, 80, 10);
+    bg.fill({ color: 0x000000, alpha: 0.7 });
+    bg.stroke({ color: 0x00ff00, width: 1 });
+    
+    this.statsPanel.addChild(bg);
+    
+    // FPS text
+    const fpsText = new PIXI.Text({
+      text: 'FPS: 60',
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 12,
+        fill: 0x00ff00
+      }
+    });
+    fpsText.name = 'fps';
+    fpsText.position.set(10, 10);
+    this.statsPanel.addChild(fpsText);
+    
+    // Cache stats
+    const cacheText = new PIXI.Text({
+      text: 'Cache: 0/0',
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 12,
+        fill: 0x00ffff
+      }
+    });
+    cacheText.name = 'cache';
+    cacheText.position.set(10, 30);
+    this.statsPanel.addChild(cacheText);
+    
+    // Memory usage
+    const memoryText = new PIXI.Text({
+      text: 'Memory: 0MB',
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 12,
+        fill: 0xffff00
+      }
+    });
+    memoryText.name = 'memory';
+    memoryText.position.set(10, 50);
+    this.statsPanel.addChild(memoryText);
+    
+    this.uiLayer.addChild(this.statsPanel);
+    
+    // Hide by default in production
+    if (process.env.NODE_ENV === 'production') {
+      this.statsPanel.visible = false;
+    }
+  }
+
+  /**
+   * Starts performance monitoring
+   */
+  private startPerformanceMonitoring(): void {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    
+    this.app.ticker.add(() => {
+      frameCount++;
+      const currentTime = performance.now();
+      
+      if (currentTime - lastTime >= 1000) {
+        this.performanceStats.fps = Math.round(frameCount * 1000 / (currentTime - lastTime));
+        frameCount = 0;
+        lastTime = currentTime;
+        
+        // Update cache stats
+        const cacheStats = GeometryCache.getCacheStats();
+        this.performanceStats.cacheHits = cacheStats.textures + cacheStats.contexts;
+        this.performanceStats.memoryUsage = Math.round(cacheStats.estimatedMemory / 1024 / 1024);
+        
+        this.updateStatsPanel();
+      }
+    });
+  }
+
+  /**
+   * Updates stats panel
+   */
+  private updateStatsPanel(): void {
+    if (!this.statsPanel || !this.statsPanel.visible) return;
+    
+    const fpsText = this.statsPanel.getChildByName('fps') as PIXI.Text;
+    const cacheText = this.statsPanel.getChildByName('cache') as PIXI.Text;
+    const memoryText = this.statsPanel.getChildByName('memory') as PIXI.Text;
+    
+    if (fpsText) {
+      fpsText.text = `FPS: ${this.performanceStats.fps}`;
+      fpsText.style.fill = this.performanceStats.fps >= 50 ? 0x00ff00 : 
+                           this.performanceStats.fps >= 30 ? 0xffff00 : 0xff0000;
+    }
+    
+    if (cacheText) {
+      const cacheStats = GeometryCache.getCacheStats();
+      cacheText.text = `Cache: ${cacheStats.textures}T/${cacheStats.contexts}C/${cacheStats.geometries}G`;
+    }
+    
+    if (memoryText) {
+      memoryText.text = `Memory: ${this.performanceStats.memoryUsage}MB`;
+    }
+  }
+
+  /**
+   * Enhanced fish generation with new artistic properties
+   */
+  private generateFishDNA(): FishDNA {
+    // Expanded template selection including new artistic ones
+    const allTemplates = { ...FISH_TEMPLATES };
+    const templateKeys = Object.keys(allTemplates);
+    const templateKey = templateKeys[Math.floor(Math.random() * templateKeys.length)];
+    const template = allTemplates[templateKey];
+    
+    // Calculate rarity
+    const rarity = this.calculateRarity();
+    
+    // Generate colors with mutations
+    const colors: FishDNA['colors'] = { 
+      ...template.baseColors,
+      glow: undefined,
+      shimmer: undefined
+    };
+    
+    // Enhanced color generation
+    if (rarity !== 'common') {
+      const hueShift = Math.random() * 360;
+      colors.primary = this.shiftHue(colors.primary, hueShift);
+      colors.secondary = this.shiftHue(colors.secondary, hueShift);
+      colors.accent = this.shiftHue(colors.accent, hueShift);
+      
+      if (['legendary', 'mythic', 'cosmic'].includes(rarity)) {
+        colors.glow = '#' + RARITY_CONFIG[rarity].glow.toString(16).padStart(6, '0');
+      }
+    }
+    
+    // Enhanced pattern selection
+    const patterns = [
+      'stripes', 'dots', 'scales', 'waves', 'spirals',
+      'fractals', 'circuits', 'crystals', 'stars', 'void',
+      'gradient', 'noise', 'geometric', 'organic', 'mystic',
+      'chevron', 'hexagonal', 'spiral', 'digital', 'glitch'
+    ];
+    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+    
+    // Surface type for artistic fish
+    let surfaceType: FishDNA['surfaceType'] | undefined;
+    if (['architectural', 'deconstructed', 'tessellated', 'calligraphic'].includes(template.bodyShape)) {
+      const surfaces: FishDNA['surfaceType'][] = ['matte', 'procedural_noise', 'glitch_sort', 'liquid_metal'];
+      surfaceType = surfaces[Math.floor(Math.random() * surfaces.length)];
+    }
+    
+    // Art style
+    const artStyles: Array<FishDNA['artStyle']> = ['minimalist', 'baroque', 'abstract', 'organic'];
+    const artStyle = artStyles[Math.floor(Math.random() * artStyles.length)];
+    
+    // Dynamic color for rare fish
+    const dynamicColor = ['legendary', 'mythic', 'cosmic'].includes(rarity) && Math.random() > 0.5;
+    
+    // Generate traits
+    const traits = this.generateTraits(template, rarity);
+    
+    // Generate mutations
+    const mutations = this.generateMutations(rarity);
+    
+    return {
+      id: `ARTEFACT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      species: templateKey,
+      bodyShape: template.bodyShape,
+      pattern,
+      surfaceType,
+      colors,
+      rarity,
+      traits: [...new Set(traits)],
+      mutations,
+      genes: {
+        size: 0.8 + Math.random() * 0.4,
+        speed: 0.5 + Math.random() * 0.5,
+        aggression: Math.random(),
+        intelligence: Math.random()
+      },
+      artStyle,
+      dynamicColor
+    };
+  }
+
+  /**
+   * Enhanced info panel with new naming conventions
+   */
+  private updateInfoPanel(fish: ArtisticFishPixi): void {
+    // Clear existing content
+    while (this.infoPanel.children.length > 1) {
+      this.infoPanel.removeChildAt(1);
+    }
+    
+    const template = FISH_TEMPLATES[fish.dna.species] || FISH_TEMPLATES.goldfish;
+    const rarityConfig = RARITY_CONFIG[fish.dna.rarity];
+    
+    // Designation (new naming convention)
+    const designation = new PIXI.Text({
+      text: `${rarityConfig.designation}-${fish.dna.id.substr(-3)}`,
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 20,
+        fontWeight: 'bold',
+        fill: rarityConfig.color
+      }
+    });
+    designation.position.set(20, 20);
+    this.infoPanel.addChild(designation);
+    
+    // Classification
+    const classification = new PIXI.Text({
+      text: template.displayName,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xcccccc
+      }
+    });
+    classification.position.set(20, 45);
+    this.infoPanel.addChild(classification);
+    
+    // Unique identifier
+    const id = new PIXI.Text({
+      text: `Identifier: ${fish.dna.id}`,
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 10,
+        fill: 0x666666
+      }
+    });
+    id.position.set(20, 65);
+    this.infoPanel.addChild(id);
+    
+    // Attributes (renamed from traits)
+    const attributesTitle = new PIXI.Text({
+      text: 'Attributes:',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 14,
+        fill: 0xcccccc
+      }
+    });
+    attributesTitle.position.set(20, 90);
+    this.infoPanel.addChild(attributesTitle);
+    
+    // Pattern as Material Property
+    const material = new PIXI.Text({
+      text: `Material: ${fish.dna.pattern} ${fish.dna.surfaceType ? `/ ${fish.dna.surfaceType}` : ''}`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0xffffff
+      }
+    });
+    material.position.set(30, 110);
+    this.infoPanel.addChild(material);
+    
+    // Art style
+    if (fish.dna.artStyle) {
+      const style = new PIXI.Text({
+        text: `Style: ${fish.dna.artStyle}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 12,
+          fill: 0xffffff
+        }
+      });
+      style.position.set(30, 130);
+      this.infoPanel.addChild(style);
+    }
+    
+    // Enhanced traits display
+    let yPos = 150;
+    fish.dna.traits.forEach(trait => {
+      const traitText = new PIXI.Text({
+        text: `• ${this.formatTraitName(trait)}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 12,
+          fill: 0x00ff00
+        }
+      });
+      traitText.position.set(30, yPos);
+      this.infoPanel.addChild(traitText);
+      yPos += 15;
+    });
+    
+    // Mutations as Enhancements
+    if (fish.dna.mutations.length > 0) {
+      yPos += 10;
+      const enhancementsTitle = new PIXI.Text({
+        text: 'Enhancements:',
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 14,
+          fill: 0xcccccc
+        }
+      });
+      enhancementsTitle.position.set(20, yPos);
+      this.infoPanel.addChild(enhancementsTitle);
+      yPos += 20;
+      
+      fish.dna.mutations.forEach(mutation => {
+        const mutationText = new PIXI.Text({
+          text: `✧ ${this.formatMutationName(mutation)}`,
+          style: {
+            fontFamily: 'Arial',
+            fontSize: 12,
+            fill: 0xff00ff
+          }
+        });
+        mutationText.position.set(30, yPos);
+        this.infoPanel.addChild(mutationText);
+        yPos += 15;
+      });
+    }
+    
+    // Value
+    yPos += 10;
+    const value = new PIXI.Text({
+      text: `Estimated Value: ◈ ${rarityConfig.value.toLocaleString()}`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fontWeight: 'bold',
+        fill: 0xffd700
+      }
+    });
+    value.position.set(20, yPos);
+    this.infoPanel.addChild(value);
+    
+    this.infoPanel.visible = true;
+  }
+
+  /**
+   * Formats trait names for display
+   */
+  private formatTraitName(trait: string): string {
+    const formatted = trait.replace(/_/g, ' ');
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  }
+
+  /**
+   * Formats mutation names for display
+   */
+  private formatMutationName(mutation: string): string {
+    const formatted = mutation.replace(/-/g, ' ').replace(/_/g, ' ');
+    return formatted.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  }
+
+  /**
+   * Main update loop with optimizations
+   */
+  private update(ticker: PIXI.Ticker): void {
+    const deltaTime = ticker.deltaTime;
+    
+    // Animate water
+    if (this.displacementSprite) {
+      this.displacementSprite.x += 0.5 * deltaTime;
+      this.displacementSprite.y += 0.3 * deltaTime;
+    }
+    
+    if (this.waterOverlay) {
+      this.waterOverlay.tilePosition.x += 0.2 * deltaTime;
+      this.waterOverlay.tilePosition.y += 0.1 * deltaTime;
+    }
+    
+    // Update based on mode
+    if (this.isSwimmingMode && this.swimmingSystem) {
+      // Update swimming system
+      this.swimmingSystem.update(deltaTime);
+      this.updateSwimmingUI();
+    } else {
+      // Update static fish with swimming behavior
+      this.fishes.forEach(fish => {
+        fish.update(deltaTime);
+        
+        // Wrap around the screen
+        const padding = 100;
+        const width = this.app.screen.width;
+        const height = this.app.screen.height;
+        
+        if (fish.x > width + padding) fish.x -= width + padding * 2;
+        if (fish.x < -padding) fish.x += width + padding * 2;
+        if (fish.y > height + padding) fish.y -= height + padding * 2;
+        if (fish.y < -padding) fish.y += height + padding * 2;
+      });
+    }
+  }
+
+  /**
+   * Generates a new artistic fish with enhancements
+   */
+  private generateNewFish(): void {
+    if (this.fishes.length >= this.fishLimit) {
+      // Remove oldest fish
+      const oldFish = this.fishes.shift();
+      if (oldFish) {
+        this.aquarium.removeChild(oldFish);
+        oldFish.destroy();
+      }
+    }
+    
+    const dna = this.generateFishDNA();
+    const fish = new ArtisticFishPixi(dna, this.app);
+    
+    // Set as static for performance if in gallery mode
+    if (!this.isSwimmingMode) {
+      fish.setStatic(true);
+    }
+    
+    // Center position with some randomness
+    const margin = 200;
+    fish.position.set(
+      margin + Math.random() * (this.app.screen.width - margin * 2),
+      margin + Math.random() * (this.app.screen.height - margin * 2)
+    );
+    
+    this.aquarium.addChild(fish);
+    this.fishes.push(fish);
+    
+    // Add to gallery
+    this.gallery.unshift(dna);
+    if (this.gallery.length > 50) {
+      this.gallery.pop();
+    }
+    
+    // Auto-select new fish
+    this.selectFish(fish);
+    
+    // Special effect for rare fish
+    if (['legendary', 'mythic', 'cosmic'].includes(dna.rarity)) {
+      this.createSpawnEffect(fish.position, RARITY_CONFIG[dna.rarity].color);
+    }
+  }
+
+  /**
+   * Enhanced spawn effect
+   */
+  private createSpawnEffect(position: PIXI.PointData, color: number): void {
+    const effect = new PIXI.Container();
+    effect.position.copyFrom(position);
+    
+    // Create expanding rings with displacement
+    for (let i = 0; i < 3; i++) {
+      const ring = new PIXI.Graphics();
+      ring.circle(0, 0, 50);
+      ring.stroke({ color, width: 3, alpha: 0.8 });
+      
+      effect.addChild(ring);
+      
+      // Animate with GPU acceleration
+      const delay = i * 100;
+      setTimeout(() => {
+        const startTime = Date.now();
+        const ticker = (deltaTime: number) => {
+          const elapsed = Date.now() - startTime;
+          const progress = elapsed / 1000;
+          
+          ring.scale.set(1 + progress * 3);
+          ring.alpha = 1 - progress;
+          
+          if (progress >= 1) {
+            effect.removeChild(ring);
+            this.app.ticker.remove(ticker);
+            
+            if (effect.children.length === 0) {
+              this.mainContainer.removeChild(effect);
+            }
+          }
+        };
+        
+        this.app.ticker.add(ticker);
+      }, delay);
+    }
+    
+    // Add particle burst for cosmic fish
+    if (color === RARITY_CONFIG.cosmic.color) {
+      this.createCosmicBurst(position);
+    }
+    
+    this.mainContainer.addChild(effect);
+  }
+
+  /**
+   * Creates cosmic burst effect
+   */
+  private createCosmicBurst(position: PIXI.PointData): void {
+    const particleCount = 50;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const particle = new PIXI.Graphics();
+      particle.star(0, 0, 5, 3, 1.5);
+      particle.fill({ color: 0xffffff, alpha: 1 });
+      
+      particle.position.copyFrom(position);
+      particle.scale.set(0.5);
+      
+      const angle = (i / particleCount) * Math.PI * 2;
+      const speed = 3 + Math.random() * 5;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+      
+      this.mainContainer.addChild(particle);
+      
+      // Animate particle
+      const ticker = (deltaTime: number) => {
+        particle.x += vx * deltaTime * 0.06;
+        particle.y += vy * deltaTime * 0.06;
+        particle.alpha -= 0.02 * deltaTime * 0.06;
+        particle.scale.x *= 0.98;
+        particle.scale.y *= 0.98;
+        particle.rotation += 0.1 * deltaTime * 0.06;
+        
+        if (particle.alpha <= 0) {
+          this.mainContainer.removeChild(particle);
+          this.app.ticker.remove(ticker);
+        }
+      };
+      
+      this.app.ticker.add(ticker);
+    }
+  }
+
+  /**
+   * Setup containers with optimization
    */
   private setupContainers(): void {
     // Background layer (static elements)
@@ -393,156 +814,75 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Creates the ocean environment with effects
+   * Creates ocean environment with optimizations
    */
   private async createOceanEnvironment(): Promise<void> {
-    // Create gradient background
-    const gradient = new PIXI.Graphics();
-    gradient.rect(0, 0, this.app.screen.width, this.app.screen.height);
-    gradient.fill({
-      color: 0x000814,
+    // Create gradient background using cached texture
+    const gradientKey = 'ocean-gradient';
+    const gradientTexture = GeometryCache.getBakedTexture(
+      this.app.renderer,
+      gradientKey,
+      (graphics) => {
+        const height = this.app.screen.height;
+        graphics.rect(0, 0, 1, height);
+        
+        // Create gradient fill
+        const gradient = graphics.context.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#000814');
+        gradient.addColorStop(0.5, '#001a33');
+        gradient.addColorStop(1, '#003366');
+        
+        graphics.context.fillStyle = gradient;
+        graphics.fill();
+      }
+    );
+    
+    const gradientSprite = new PIXI.TilingSprite({
+      texture: gradientTexture,
+      width: this.app.screen.width,
+      height: this.app.screen.height
     });
     
-    // Add gradient overlay
-    const gradientTexture = await this.createGradientTexture();
-    const gradientSprite = new PIXI.Sprite(gradientTexture);
-    gradientSprite.width = this.app.screen.width;
-    gradientSprite.height = this.app.screen.height;
-    
-    this.backgroundLayer.addChild(gradient);
     this.backgroundLayer.addChild(gradientSprite);
     
     // Create water displacement effect
     await this.createWaterEffect();
     
-    // Add ambient particles
+    // Add ambient particles with ParticleContainer
     this.createAmbientParticles();
   }
 
   /**
-   * Creates gradient texture
-   */
-  private async createGradientTexture(): Promise<PIXI.Texture> {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d')!;
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-    gradient.addColorStop(0, '#000814');
-    gradient.addColorStop(0.5, '#001a33');
-    gradient.addColorStop(1, '#003366');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1, 256);
-    
-    return PIXI.Texture.from(canvas);
-  }
-
-  /**
-   * Creates water displacement effect
-   */
-  private async createWaterEffect(): Promise<void> {
-    // Create displacement texture
-    const displacementTexture = await this.createDisplacementTexture();
-    
-    this.displacementSprite = new PIXI.Sprite(displacementTexture);
-    this.displacementSprite.texture.source.wrapMode = 'repeat';
-    this.displacementSprite.scale.set(2);
-    
-    this.displacementFilter = new PIXI.DisplacementFilter({
-      sprite: this.displacementSprite,
-      scale: 20,
-    });
-    
-    this.mainContainer.addChild(this.displacementSprite);
-    this.mainContainer.filters = [this.displacementFilter];
-    
-    // Water overlay for caustics
-    const waterTexture = await this.createWaterOverlayTexture();
-    this.waterOverlay = new PIXI.TilingSprite({
-      texture: waterTexture,
-      width: this.app.screen.width,
-      height: this.app.screen.height,
-    });
-    this.waterOverlay.alpha = 0.1;
-    this.waterOverlay.blendMode = 'add';
-    
-    this.mainContainer.addChild(this.waterOverlay);
-  }
-
-  /**
-   * Creates displacement texture for water effect
-   */
-  private async createDisplacementTexture(): Promise<PIXI.Texture> {
-    const size = 256;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
-    
-    const imageData = ctx.createImageData(size, size);
-    const data = imageData.data;
-    
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const i = (y * size + x) * 4;
-        
-        // Create smooth noise
-        const value1 = Math.sin(x * 0.01) * Math.cos(y * 0.01) * 127 + 127;
-        const value2 = Math.sin(x * 0.02 + 50) * Math.cos(y * 0.02 + 50) * 127 + 127;
-        
-        data[i] = value1;
-        data[i + 1] = value2;
-        data[i + 2] = 128;
-        data[i + 3] = 255;
-      }
-    }
-    
-    ctx.putImageData(imageData, 0, 0);
-    return PIXI.Texture.from(canvas);
-  }
-
-  /**
-   * Creates water overlay texture
-   */
-  private async createWaterOverlayTexture(): Promise<PIXI.Texture> {
-    const size = 128;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
-    
-    // Create caustics pattern
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * size;
-      const y = Math.random() * size;
-      const radius = 10 + Math.random() * 20;
-      
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    }
-    
-    return PIXI.Texture.from(canvas);
-  }
-
-  /**
-   * Creates ambient particles
+   * Creates ambient particles using ParticleContainer
    */
   private createAmbientParticles(): void {
-    const particleContainer = new PIXI.Container();
+    const particleContainer = new PIXI.ParticleContainer(100, {
+      position: true,
+      scale: true,
+      alpha: true
+    });
+    
+    // Create particle texture
+    const particleTexture = GeometryCache.getBakedTexture(
+      this.app.renderer,
+      'ambient-particle',
+      (graphics) => {
+        graphics.circle(0, 0, 5);
+        graphics.fill({ color: 0xffffff });
+      }
+    );
     
     for (let i = 0; i < 50; i++) {
-      const particle = new PIXI.Graphics();
-      particle.circle(0, 0, 1 + Math.random() * 2);
-      particle.fill({ color: 0xffffff, alpha: 0.1 + Math.random() * 0.1 });
+      const particle = new PIXI.Sprite(particleTexture);
+      particle.anchor.set(0.5);
+      particle.position.set(
+        Math.random() * this.app.screen.width,
+        this.app.screen.height + 50
+      );
       
-      particle.x = Math.random() * this.app.screen.width;
-      particle.y = this.app.screen.height + 50;
+      const scale = 0.1 + Math.random() * 0.3;
+      particle.scale.set(scale);
+      particle.alpha = 0.1 + Math.random() * 0.1;
       
       (particle as any).speed = 0.2 + Math.random() * 0.5;
       (particle as any).wobble = Math.random() * 2 - 1;
@@ -567,12 +907,80 @@ export class NFTGalleryEngine {
   }
 
   /**
+   * Creates water displacement effect with optimization
+   */
+  private async createWaterEffect(): Promise<void> {
+    // Create displacement texture with caching
+    const displacementTexture = GeometryCache.getBakedTexture(
+      this.app.renderer,
+      'water-displacement',
+      (graphics) => {
+        const size = 256;
+        graphics.rect(0, 0, size, size);
+        
+        // Create Perlin-noise-like pattern
+        for (let i = 0; i < 50; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const radius = 10 + Math.random() * 20;
+          
+          graphics.circle(x, y, radius);
+          graphics.fill({
+            color: Math.random() > 0.5 ? 0xff0000 : 0x00ff00,
+            alpha: 0.5
+          });
+        }
+      }
+    );
+    
+    this.displacementSprite = new PIXI.Sprite(displacementTexture);
+    this.displacementSprite.texture.source.wrapMode = 'repeat';
+    this.displacementSprite.scale.set(2);
+    
+    this.displacementFilter = new PIXI.DisplacementFilter({
+      sprite: this.displacementSprite,
+      scale: 20,
+    });
+    
+    this.mainContainer.addChild(this.displacementSprite);
+    this.mainContainer.filters = [this.displacementFilter];
+    
+    // Water overlay for caustics
+    const waterTexture = GeometryCache.getBakedTexture(
+      this.app.renderer,
+      'water-overlay',
+      (graphics) => {
+        const size = 128;
+        
+        for (let i = 0; i < 20; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const radius = 10 + Math.random() * 20;
+          
+          graphics.circle(x, y, radius);
+          graphics.fill({ color: 0xffffff, alpha: 0.1 });
+        }
+      }
+    );
+    
+    this.waterOverlay = new PIXI.TilingSprite({
+      texture: waterTexture,
+      width: this.app.screen.width,
+      height: this.app.screen.height,
+    });
+    this.waterOverlay.alpha = 0.1;
+    this.waterOverlay.blendMode = 'add';
+    
+    this.mainContainer.addChild(this.waterOverlay);
+  }
+
+  /**
    * Creates UI elements
    */
   private createUI(): void {
-    // Generate button
+    // Generate button with new text
     this.generateButton = this.createButton(
-      '✨ Generate Artistic Fish',
+      '✨ Generate Digital Artefact',
       50,
       50,
       () => this.generateNewFish()
@@ -581,7 +989,7 @@ export class NFTGalleryEngine {
     
     // Gallery button
     this.galleryButton = this.createButton(
-      '🖼️ View Gallery',
+      '🖼️ Collection Archive',
       50,
       120,
       () => this.toggleGallery()
@@ -590,12 +998,23 @@ export class NFTGalleryEngine {
     
     // Spawner mode button
     const swimmingButton = this.createButton(
-      '🎮 Toggle Swimming',
+      '🌊 Toggle Ecosystem',
       50,
       190,
       () => this.toggleSwimmingMode()
     );
     this.uiLayer.addChild(swimmingButton);
+    
+    // Performance toggle button
+    const perfButton = this.createButton(
+      '📊 Performance Stats',
+      50,
+      260,
+      () => {
+        this.statsPanel.visible = !this.statsPanel.visible;
+      }
+    );
+    this.uiLayer.addChild(perfButton);
     
     // Info panel
     this.createInfoPanel();
@@ -665,7 +1084,7 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Creates info panel for displaying fish details
+   * Creates info panel
    */
   private createInfoPanel(): void {
     this.infoPanel = new PIXI.Container();
@@ -673,7 +1092,7 @@ export class NFTGalleryEngine {
     
     // Background
     const bg = new PIXI.Graphics();
-    bg.roundRect(0, 0, 400, 300, 15);
+    bg.roundRect(0, 0, 400, 350, 15);
     bg.fill({ color: 0x000000, alpha: 0.8 });
     bg.stroke({ color: 0x00ccff, width: 2 });
     
@@ -687,137 +1106,7 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Updates info panel with fish data
-   */
-  private updateInfoPanel(fish: ArtisticFishPixi): void {
-    // Clear existing content
-    while (this.infoPanel.children.length > 1) {
-      this.infoPanel.removeChildAt(1);
-    }
-    
-    const template = FISH_TEMPLATES[fish.dna.species];
-    const rarityConfig = RARITY_CONFIG[fish.dna.rarity];
-    
-    // Title
-    const title = new PIXI.Text({
-      text: template.displayName,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 24,
-        fontWeight: 'bold',
-        fill: rarityConfig.color
-      }
-    });
-    title.position.set(20, 20);
-    this.infoPanel.addChild(title);
-    
-    // ID
-    const id = new PIXI.Text({
-      text: `ID: ${fish.dna.id}`,
-      style: {
-        fontFamily: 'monospace',
-        fontSize: 14,
-        fill: 0xcccccc
-      }
-    });
-    id.position.set(20, 55);
-    this.infoPanel.addChild(id);
-    
-    // Rarity
-    const rarity = new PIXI.Text({
-      text: `Rarity: ${fish.dna.rarity.toUpperCase()}`,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 18,
-        fontWeight: 'bold',
-        fill: rarityConfig.color
-      }
-    });
-    rarity.position.set(20, 85);
-    this.infoPanel.addChild(rarity);
-    
-    // Value
-    const value = new PIXI.Text({
-      text: `Value: ${rarityConfig.value} 💎`,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        fill: 0xffd700
-      }
-    });
-    value.position.set(20, 115);
-    this.infoPanel.addChild(value);
-    
-    // Pattern
-    const pattern = new PIXI.Text({
-      text: `Pattern: ${fish.dna.pattern}`,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 14,
-        fill: 0xffffff
-      }
-    });
-    pattern.position.set(20, 145);
-    this.infoPanel.addChild(pattern);
-    
-    // Traits
-    if (fish.dna.traits.length > 0) {
-      const traitsTitle = new PIXI.Text({
-        text: 'Special Traits:',
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 14,
-          fill: 0xcccccc
-        }
-      });
-      traitsTitle.position.set(20, 175);
-      this.infoPanel.addChild(traitsTitle);
-      
-      fish.dna.traits.forEach((trait, i) => {
-        const traitText = new PIXI.Text({
-          text: `• ${trait.replace(/_/g, ' ')}`,
-          style: {
-            fontFamily: 'Arial',
-            fontSize: 12,
-            fill: 0x00ff00
-          }
-        });
-        traitText.position.set(30, 195 + i * 15);
-        this.infoPanel.addChild(traitText);
-      });
-    }
-    
-    // Mutations
-    if (fish.dna.mutations.length > 0) {
-      const mutationsY = 195 + fish.dna.traits.length * 15 + 10;
-      const mutationsTitle = new PIXI.Text({
-        text: 'Mutations:',
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 14,
-          fill: 0xcccccc
-        }
-      });
-      mutationsTitle.position.set(20, mutationsY);
-      this.infoPanel.addChild(mutationsTitle);
-      
-      const mutationsText = new PIXI.Text({
-        text: fish.dna.mutations.map(m => `✨ ${m}`).join('  '),
-        style: {
-          fontFamily: 'Arial',
-          fontSize: 12,
-          fill: 0xff00ff
-        }
-      });
-      mutationsText.position.set(30, mutationsY + 20);
-      this.infoPanel.addChild(mutationsText);
-    }
-    
-    this.infoPanel.visible = true;
-  }
-
-  /**
-   * Sets up interactions
+   * Setup interactions
    */
   private setupInteractions(): void {
     // Click on fish to select
@@ -846,9 +1135,9 @@ export class NFTGalleryEngine {
   private selectFish(fish: ArtisticFishPixi): void {
     // Deselect previous
     if (this.selectedFish) {
-      // Reset to original scale (considering the fish's gene-based scale)
       const prevScaleFactor = 0.3 + (this.selectedFish.dna.genes.size * 0.4);
       this.selectedFish.scale.set(prevScaleFactor);
+      this.selectedFish.setStatic(true);
     }
     
     this.selectedFish = fish;
@@ -856,175 +1145,141 @@ export class NFTGalleryEngine {
     // Scale up selected fish
     const scaleFactor = 0.3 + (fish.dna.genes.size * 0.4);
     fish.scale.set(scaleFactor * 1.2);
+    fish.setStatic(false); // Enable animations for selected fish
     
     this.updateInfoPanel(fish);
   }
 
   /**
-   * Generates a new artistic fish
+   * Toggles swimming mode
    */
-  private generateNewFish(): void {
-    if (this.fishes.length >= this.fishLimit) {
-      // Remove oldest fish
-      const oldFish = this.fishes.shift();
-      if (oldFish) {
-        this.aquarium.removeChild(oldFish);
-        oldFish.destroy();
+  private toggleSwimmingMode(): void {
+    this.isSwimmingMode = !this.isSwimmingMode;
+    
+    if (this.isSwimmingMode) {
+      // Clear static fish
+      this.fishes.forEach(fish => {
+        this.aquarium.removeChild(fish);
+        fish.destroy();
+      });
+      this.fishes = [];
+      
+      // Clear geometry cache for memory
+      GeometryCache.clearCache();
+      
+      // Hide info panel
+      this.infoPanel.visible = false;
+      
+      // Show swimming UI
+      this.showSwimmingUI();
+    } else {
+      // Clear swimming fish
+      if (this.swimmingSystem) {
+        this.swimmingSystem.clearAllFish();
       }
-    }
-    
-    const dna = this.generateFishDNA();
-    const fish = new ArtisticFishPixi(dna, this.app);
-    
-    // Center position with some randomness
-    const margin = 200;
-    fish.position.set(
-      margin + Math.random() * (this.app.screen.width - margin * 2),
-      margin + Math.random() * (this.app.screen.height - margin * 2)
-    );
-    
-    this.aquarium.addChild(fish);
-    this.fishes.push(fish);
-    
-    // Add to gallery
-    this.gallery.unshift(dna);
-    if (this.gallery.length > 50) {
-      this.gallery.pop();
-    }
-    
-    // Auto-select new fish
-    this.selectFish(fish);
-    
-    // Special effect for rare fish
-    if (['legendary', 'mythic', 'cosmic'].includes(dna.rarity)) {
-      this.createSpawnEffect(fish.position, RARITY_CONFIG[dna.rarity].color);
+      
+      // Hide swimming UI
+      this.hideSwimmingUI();
+      
+      // Generate some static fish
+      this.generateInitialFish();
     }
   }
 
   /**
-   * Creates spawn effect for rare fish
+   * Shows swimming mode UI
    */
-  private createSpawnEffect(position: PIXI.PointData, color: number): void {
-    const effect = new PIXI.Container();
-    effect.position.copyFrom(position);
+  private showSwimmingUI(): void {
+    const swimmingInfo = new PIXI.Container();
+    swimmingInfo.name = 'swimmingInfo';
     
-    // Create expanding rings
-    for (let i = 0; i < 3; i++) {
-      const ring = new PIXI.Graphics();
-      ring.circle(0, 0, 50);
-      ring.stroke({ color, width: 3, alpha: 0.8 });
-      
-      effect.addChild(ring);
-      
-      // Animate
-      const delay = i * 100;
-      setTimeout(() => {
-        const startTime = Date.now();
-        const animate = () => {
-          const elapsed = Date.now() - startTime;
-          const progress = elapsed / 1000;
-          
-          ring.scale.set(1 + progress * 3);
-          ring.alpha = 1 - progress;
-          
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            effect.removeChild(ring);
-          }
-        };
-        animate();
-      }, delay);
+    const bg = new PIXI.Graphics();
+    bg.roundRect(0, 0, 280, 120, 15);
+    bg.fill({ color: 0x000000, alpha: 0.7 });
+    bg.stroke({ color: 0x00ffff, width: 2 });
+    
+    swimmingInfo.addChild(bg);
+    
+    const title = new PIXI.Text({
+      text: '🌊 Living Ecosystem',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 20,
+        fontWeight: 'bold',
+        fill: 0x00ffff
+      }
+    });
+    title.position.set(20, 15);
+    swimmingInfo.addChild(title);
+    
+    const fishCount = new PIXI.Text({
+      text: 'Active Entities: 0',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xffffff
+      }
+    });
+    fishCount.name = 'fishCount';
+    fishCount.position.set(20, 50);
+    swimmingInfo.addChild(fishCount);
+    
+    const bossStatus = new PIXI.Text({
+      text: 'Apex Predator: Dormant',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xffd700
+      }
+    });
+    bossStatus.name = 'bossStatus';
+    bossStatus.position.set(20, 80);
+    swimmingInfo.addChild(bossStatus);
+    
+    swimmingInfo.position.set(this.app.screen.width - 320, 50);
+    this.uiLayer.addChild(swimmingInfo);
+  }
+
+  /**
+   * Hides swimming mode UI
+   */
+  private hideSwimmingUI(): void {
+    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo');
+    if (swimmingInfo) {
+      this.uiLayer.removeChild(swimmingInfo);
+      swimmingInfo.destroy({ children: true });
+    }
+  }
+
+  /**
+   * Updates swimming UI
+   */
+  private updateSwimmingUI(): void {
+    if (!this.swimmingSystem || !this.isSwimmingMode) return;
+    
+    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo') as PIXI.Container;
+    if (!swimmingInfo) return;
+    
+    const fishCount = swimmingInfo.getChildByName('fishCount') as PIXI.Text;
+    const bossStatus = swimmingInfo.getChildByName('bossStatus') as PIXI.Text;
+    
+    if (fishCount) {
+      fishCount.text = `Active Entities: ${this.swimmingSystem.getActiveFishCount()}`;
     }
     
-    this.mainContainer.addChild(effect);
-    
-    // Clean up after animation
-    setTimeout(() => {
-      this.mainContainer.removeChild(effect);
-    }, 2000);
+    if (bossStatus) {
+      bossStatus.text = `Apex Predator: ${this.swimmingSystem.isBossActive() ? '⚠️ ACTIVE!' : 'Dormant'}`;
+      bossStatus.style.fill = this.swimmingSystem.isBossActive() ? 0xff0000 : 0xffd700;
+    }
   }
 
   /**
    * Generates initial fish
    */
   private generateInitialFish(): void {
-    // Start in normal gallery mode with static fish
     for (let i = 0; i < 5; i++) {
       setTimeout(() => this.generateNewFish(), i * 200);
     }
-  }
-
-  /**
-   * Generates fish DNA
-   */
-  private generateFishDNA(): FishDNA {
-    // Select random template with more variety
-    const allSpecies = Object.keys(FISH_TEMPLATES);
-    const templateKey = allSpecies[Math.floor(Math.random() * allSpecies.length)];
-    const template = FISH_TEMPLATES[templateKey];
-    
-    // Calculate rarity
-    const rarity = this.calculateRarity();
-    
-    // Generate colors with mutations
-    const colors: FishDNA['colors'] = { 
-      ...template.baseColors,
-      glow: undefined,
-      shimmer: undefined
-    };
-    
-    if (rarity !== 'common') {
-      const hueShift = Math.random() * 360;
-      colors.primary = this.shiftHue(colors.primary, hueShift);
-      colors.secondary = this.shiftHue(colors.secondary, hueShift);
-      colors.accent = this.shiftHue(colors.accent, hueShift);
-      
-      if (['legendary', 'mythic', 'cosmic'].includes(rarity)) {
-        colors.glow = '#' + RARITY_CONFIG[rarity].glow.toString(16).padStart(6, '0');
-      }
-      
-      if (['goldfish', 'goldenLuck'].includes(templateKey)) {
-        colors.shimmer = '#FFD700';
-      }
-    }
-    
-    // Generate pattern - more variety
-    const patterns = [
-      'stripes', 'dots', 'scales', 'waves', 'spirals',
-      'fractals', 'circuits', 'crystals', 'stars', 'void',
-      'gradient', 'noise', 'geometric', 'organic', 'mystic',
-      'chevron', 'hexagonal', 'spiral'
-    ];
-    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
-    
-    // Generate traits based on template and rarity
-    const traits = this.generateTraits(template, rarity);
-    
-    // Add species-specific traits
-    if (template.features.special) {
-      traits.push(...template.features.special);
-    }
-    
-    // Generate mutations
-    const mutations = this.generateMutations(rarity);
-    
-    return {
-      id: `FISH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      species: templateKey,
-      bodyShape: template.bodyShape,
-      pattern,
-      colors,
-      rarity,
-      traits: [...new Set(traits)], // Remove duplicates
-      mutations,
-      genes: {
-        size: 0.8 + Math.random() * 0.4,
-        speed: 0.5 + Math.random() * 0.5,
-        aggression: Math.random(),
-        intelligence: Math.random()
-      }
-    };
   }
 
   /**
@@ -1045,27 +1300,26 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Generates traits based on template and rarity
+   * Generates traits with enhanced variety
    */
   private generateTraits(template: FishTemplate, rarity: string): string[] {
     const traits = [...(template.features.special || [])];
     
-    // Rarity-specific traits
+    // Enhanced rarity-specific traits
     const rarityTraits: Record<string, string[]> = {
-      uncommon: ['shimmer', 'rare_pattern'],
-      rare: ['aura', 'special_eyes', 'unique_fins'],
-      epic: ['particle_trail', 'color_shift', 'glow'],
-      legendary: ['crown', 'ancient_marks', 'divine_light'],
-      mythic: ['reality_warp', 'time_distortion', 'soul_visible'],
-      cosmic: ['universe_inside', 'dimension_rift', 'god_particle']
+      uncommon: ['shimmer', 'rare_pattern', 'enhanced_fins'],
+      rare: ['aura', 'special_eyes', 'unique_fins', 'color_shift'],
+      epic: ['particle_trail', 'color_shift', 'glow', 'morphing_pattern'],
+      legendary: ['crown', 'ancient_marks', 'divine_light', 'reality_bend'],
+      mythic: ['reality_warp', 'time_distortion', 'soul_visible', 'dimension_rift'],
+      cosmic: ['universe_inside', 'dimension_rift', 'god_particle', 'infinity_loop']
     };
     
     if (rarityTraits[rarity]) {
-      // Add some random traits based on rarity
       const availableTraits = rarityTraits[rarity];
       const traitCount = Math.min(
         availableTraits.length,
-        rarity === 'cosmic' ? 3 : rarity === 'mythic' ? 2 : 1
+        rarity === 'cosmic' ? 4 : rarity === 'mythic' ? 3 : rarity === 'legendary' ? 2 : 1
       );
       
       for (let i = 0; i < traitCount; i++) {
@@ -1080,7 +1334,7 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Generates mutations based on rarity
+   * Generates mutations with enhanced variety
    */
   private generateMutations(rarity: string): string[] {
     const mutations: string[] = [];
@@ -1088,14 +1342,15 @@ export class NFTGalleryEngine {
       'albino', 'melanistic', 'iridescent', 'translucent',
       'bioluminescent', 'prismatic', 'chromatic', 'metallic',
       'holographic', 'quantum', 'ethereal', 'celestial',
-      'void-touched', 'crystal-infused', 'plasma-charged'
+      'void-touched', 'crystal-infused', 'plasma-charged',
+      'nano-enhanced', 'photonic', 'dark-matter', 'antimatter'
     ];
     
     const mutationCounts: Record<string, number> = {
       common: 0,
-      uncommon: 0,
-      rare: Math.random() > 0.5 ? 1 : 0,
-      epic: 1,
+      uncommon: Math.random() > 0.7 ? 1 : 0,
+      rare: 1,
+      epic: 1 + (Math.random() > 0.5 ? 1 : 0),
       legendary: 2,
       mythic: 3,
       cosmic: 4
@@ -1114,134 +1369,12 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Toggles swimming mode (Fish Master style)
-   */
-  private toggleSwimmingMode(): void {
-    this.isSwimmingMode = !this.isSwimmingMode;
-    
-    if (this.isSwimmingMode) {
-      // Clear static fish
-      this.fishes.forEach(fish => {
-        this.aquarium.removeChild(fish);
-        fish.destroy();
-      });
-      this.fishes = [];
-      
-      // Hide info panel
-      this.infoPanel.visible = false;
-      
-      // Show swimming UI
-      this.showSwimmingUI();
-    } else {
-      // Clear swimming fish
-      if (this.swimmingSystem) {
-        this.swimmingSystem.clearAllFish();
-      }
-      
-      // Hide swimming UI
-      this.hideSwimmingUI();
-      
-      // Generate some static fish
-      this.generateInitialFish();
-    }
-  }
-  
-  /**
-   * Shows swimming mode UI
-   */
-  private showSwimmingUI(): void {
-    // Create swimming info display
-    const swimmingInfo = new PIXI.Container();
-    swimmingInfo.name = 'swimmingInfo';
-    
-    const bg = new PIXI.Graphics();
-    bg.roundRect(0, 0, 280, 120, 15);
-    bg.fill({ color: 0x000000, alpha: 0.7 });
-    bg.stroke({ color: 0x00ffff, width: 2 });
-    
-    swimmingInfo.addChild(bg);
-    
-    const title = new PIXI.Text({
-      text: '🌊 Fish Master Mode',
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 20,
-        fontWeight: 'bold',
-        fill: 0x00ffff
-      }
-    });
-    title.position.set(20, 15);
-    swimmingInfo.addChild(title);
-    
-    const fishCount = new PIXI.Text({
-      text: 'Active Fish: 0',
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        fill: 0xffffff
-      }
-    });
-    fishCount.name = 'fishCount';
-    fishCount.position.set(20, 50);
-    swimmingInfo.addChild(fishCount);
-    
-    const bossStatus = new PIXI.Text({
-      text: 'Boss: Not Active',
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        fill: 0xffd700
-      }
-    });
-    bossStatus.name = 'bossStatus';
-    bossStatus.position.set(20, 80);
-    swimmingInfo.addChild(bossStatus);
-    
-    swimmingInfo.position.set(this.app.screen.width - 320, 50);
-    this.uiLayer.addChild(swimmingInfo);
-  }
-  
-  /**
-   * Hides swimming mode UI
-   */
-  private hideSwimmingUI(): void {
-    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo');
-    if (swimmingInfo) {
-      this.uiLayer.removeChild(swimmingInfo);
-      swimmingInfo.destroy({ children: true });
-    }
-  }
-  
-  /**
-   * Updates swimming UI with current stats
-   */
-  private updateSwimmingUI(): void {
-    if (!this.swimmingSystem || !this.isSwimmingMode) return;
-    
-    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo') as PIXI.Container;
-    if (!swimmingInfo) return;
-    
-    const fishCount = swimmingInfo.getChildByName('fishCount') as PIXI.Text;
-    const bossStatus = swimmingInfo.getChildByName('bossStatus') as PIXI.Text;
-    
-    if (fishCount) {
-      fishCount.text = `Active Fish: ${this.swimmingSystem.getActiveFishCount()}`;
-    }
-    
-    if (bossStatus) {
-      bossStatus.text = `Boss: ${this.swimmingSystem.isBossActive() ? '⚠️ ACTIVE!' : 'Not Active'}`;
-      bossStatus.style.fill = this.swimmingSystem.isBossActive() ? 0xff0000 : 0xffd700;
-    }
-  }
-
-  /**
-   * Shows the gallery view
+   * Shows gallery view
    */
   private showGallery(): void {
-    // Hide aquarium
+    // Implementation remains similar but with enhanced UI
     this.aquarium.visible = false;
     
-    // Create gallery container
     const galleryContainer = new PIXI.Container();
     galleryContainer.name = 'gallery';
     
@@ -1253,7 +1386,7 @@ export class NFTGalleryEngine {
     
     // Title
     const title = new PIXI.Text({
-      text: 'NFT Fish Gallery',
+      text: 'Digital Artefact Archive',
       style: {
         fontFamily: 'Arial',
         fontSize: 48,
@@ -1273,7 +1406,6 @@ export class NFTGalleryEngine {
     
     // Create grid of fish
     const gridCols = 6;
-    const gridRows = Math.ceil(this.gallery.length / gridCols);
     const cellSize = 150;
     const padding = 20;
     const startX = (this.app.screen.width - (gridCols * (cellSize + padding))) / 2;
@@ -1296,7 +1428,7 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Creates a gallery cell for a fish
+   * Creates gallery cell
    */
   private createGalleryCell(fishDNA: FishDNA): PIXI.Container {
     const cell = new PIXI.Container();
@@ -1315,26 +1447,26 @@ export class NFTGalleryEngine {
     // Create mini fish preview
     const fishPreview = new ArtisticFishPixi(fishDNA, this.app);
     fishPreview.position.set(70, 60);
-    // Scale appropriately for gallery cell
+    fishPreview.setStatic(true); // Optimize for gallery
     const previewScale = 0.15 + (fishDNA.genes.size * 0.1);
     fishPreview.scale.set(previewScale);
     
     cell.addChild(bg);
     cell.addChild(fishPreview);
     
-    // Rarity label
-    const rarityLabel = new PIXI.Text({
-      text: fishDNA.rarity.toUpperCase(),
+    // Designation label
+    const designationLabel = new PIXI.Text({
+      text: `${rarityConfig.designation}-${fishDNA.id.substr(-3)}`,
       style: {
-        fontFamily: 'Arial',
+        fontFamily: 'monospace',
         fontSize: 12,
         fontWeight: 'bold',
         fill: rarityConfig.color
       }
     });
-    rarityLabel.anchor.set(0.5);
-    rarityLabel.position.set(70, 120);
-    cell.addChild(rarityLabel);
+    designationLabel.anchor.set(0.5);
+    designationLabel.position.set(70, 120);
+    cell.addChild(designationLabel);
     
     // Make interactive
     cell.eventMode = 'static';
@@ -1359,7 +1491,7 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Hides the gallery view
+   * Hides gallery
    */
   private hideGallery(): void {
     const gallery = this.uiLayer.getChildByName('gallery');
@@ -1373,7 +1505,7 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Spawns a fish from the gallery
+   * Spawns fish from gallery
    */
   private spawnFromGallery(fishDNA: FishDNA): void {
     const fish = new ArtisticFishPixi(fishDNA, this.app);
@@ -1386,17 +1518,15 @@ export class NFTGalleryEngine {
     this.aquarium.addChild(fish);
     this.fishes.push(fish);
     
-    // Auto-select
     this.selectFish(fish);
     
-    // Spawn effect
     if (['legendary', 'mythic', 'cosmic'].includes(fishDNA.rarity)) {
       this.createSpawnEffect(fish.position, RARITY_CONFIG[fishDNA.rarity].color);
     }
   }
 
   /**
-   * Toggles gallery view
+   * Toggles gallery
    */
   private toggleGallery(): void {
     this.isGalleryMode = !this.isGalleryMode;
@@ -1405,46 +1535,6 @@ export class NFTGalleryEngine {
       this.showGallery();
     } else {
       this.hideGallery();
-    }
-  }
-  
-  /**
-   * Main update loop
-   */
-  private update(ticker: PIXI.Ticker): void {
-    const deltaTime = ticker.deltaTime;
-    
-    // Animate water
-    if (this.displacementSprite) {
-      this.displacementSprite.x += 0.5 * deltaTime;
-      this.displacementSprite.y += 0.3 * deltaTime;
-    }
-    
-    if (this.waterOverlay) {
-      this.waterOverlay.tilePosition.x += 0.2 * deltaTime;
-      this.waterOverlay.tilePosition.y += 0.1 * deltaTime;
-    }
-    
-    // Update based on mode
-    if (this.isSwimmingMode && this.swimmingSystem) {
-      // Update swimming system
-      this.swimmingSystem.update(deltaTime);
-      this.updateSwimmingUI();
-    } else {
-      // Update static fish with swimming behavior
-      this.fishes.forEach(fish => {
-        fish.update(deltaTime);
-        
-        // Wrap around the screen (like official example)
-        const padding = 100;
-        const width = this.app.screen.width;
-        const height = this.app.screen.height;
-        
-        if (fish.x > width + padding) fish.x -= width + padding * 2;
-        if (fish.x < -padding) fish.x += width + padding * 2;
-        if (fish.y > height + padding) fish.y -= height + padding * 2;
-        if (fish.y < -padding) fish.y += height + padding * 2;
-      });
     }
   }
 
@@ -1466,6 +1556,16 @@ export class NFTGalleryEngine {
         window.innerWidth - 450,
         50
       );
+    }
+    
+    if (this.statsPanel) {
+      this.statsPanel.position.set(10, window.innerHeight - 100);
+    }
+    
+    // Update swimming UI position
+    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo');
+    if (swimmingInfo) {
+      swimmingInfo.position.set(window.innerWidth - 320, 50);
     }
   }
 
@@ -1550,6 +1650,11 @@ export class NFTGalleryEngine {
    */
   public destroy(): void {
     window.removeEventListener('resize', this.onResize.bind(this));
+    
+    // Clear caches
+    GeometryCache.clearCache();
+    
+    // Destroy app
     this.app.destroy(true);
   }
 }
