@@ -333,7 +333,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   private drawDeconstructedFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
-  // Floating geometric fragments
+    // Floating geometric fragments
     const fragments = [
       { x: 0, y: 0, w: size * 0.4, h: size * 0.3, rot: 0 },
       { x: size * 0.3, y: -size * 0.1, w: size * 0.3, h: size * 0.2, rot: 0.2 },
@@ -1472,14 +1472,17 @@ export class ArtisticFishPixi extends PIXI.Container {
     const particleTexture = this.createParticleTexture();
     
     // Use ParticleContainer for better performance - PIXI v8 syntax
+    // Looking at the docs, ParticleContainer doesn't have a maxSize property
+    // The container will automatically grow as needed
     this.particleContainer = new PIXI.ParticleContainer({
-      maxSize: particleCount,
-      properties: {
-        position: true,
-        rotation: false,
-        scale: true,
-        alpha: true,
-        tint: true
+      texture: particleTexture,
+      // Use the correct property name from v8 docs
+      dynamicProperties: {
+        position: true,    // Dynamic position updates
+        rotation: false,   // Static rotation
+        scale: true,       // Dynamic scale
+        alpha: true,       // Dynamic alpha
+        tint: true        // Dynamic tint
       }
     });
     
