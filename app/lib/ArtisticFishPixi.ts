@@ -4,7 +4,7 @@
  * Premium artistic fish generation system for PIXI.js v8
  * Enhanced with performance optimizations and sophisticated visual effects
  * 
- * @version 3.0.0
+ * @version 3.1.0
  * @requires pixi.js ^8.0.0
  * @path app/lib/ArtisticFishPixi.ts
  */
@@ -194,7 +194,7 @@ export class ArtisticFishPixi extends PIXI.Container {
    */
   private enableCaching(): void {
     if (!this.isCached && this.fishContainer) {
-      // In PIXI v8, cacheAsTexture has simpler options
+      // In PIXI v8, cacheAsTexture only accepts resolution option
       this.fishContainer.cacheAsTexture({
         resolution: 2
       });
@@ -333,7 +333,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   private drawDeconstructedFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
-    // Floating geometric fragments - create each as a separate shape
+    // Floating geometric fragments
     const fragments = [
       { x: 0, y: 0, w: size * 0.4, h: size * 0.3, rot: 0 },
       { x: size * 0.3, y: -size * 0.1, w: size * 0.3, h: size * 0.2, rot: 0.2 },
@@ -342,33 +342,12 @@ export class ArtisticFishPixi extends PIXI.Container {
     ];
     
     fragments.forEach((frag, i) => {
-      // Calculate rotated rectangle corners
-      const cos = Math.cos(frag.rot);
-      const sin = Math.sin(frag.rot);
-      
-      // Define rectangle corners relative to center
-      const corners = [
-        { x: -frag.w/2, y: -frag.h/2 },
-        { x: frag.w/2, y: -frag.h/2 },
-        { x: frag.w/2, y: frag.h/2 },
-        { x: -frag.w/2, y: frag.h/2 }
-      ];
-      
-      // Transform and draw
-      graphics.moveTo(
-        frag.x + corners[0].x * cos - corners[0].y * sin,
-        frag.y + corners[0].x * sin + corners[0].y * cos
-      );
-      
-      for (let j = 1; j < corners.length; j++) {
-        graphics.lineTo(
-          frag.x + corners[j].x * cos - corners[j].y * sin,
-          frag.y + corners[j].x * sin + corners[j].y * cos
-        );
-      }
-      
-      graphics.closePath();
+      graphics.save();
+      graphics.translate(frag.x, frag.y);
+      graphics.rotate(frag.rot);
+      graphics.rect(-frag.w/2, -frag.h/2, frag.w, frag.h);
       graphics.fill({ color: i % 2 === 0 ? primary : secondary });
+      graphics.restore();
     });
   }
 
@@ -817,50 +796,41 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Mystical symbols
     const symbols = [
       // Circle with cross
-      (x: number, y: number) => {
-        graphics.circle(x, y, size * 0.2);
+      () => {
+        graphics.circle(0, 0, size * 0.2);
         graphics.stroke({ color: 0x000000, alpha: 0.3, width: 2 });
-        graphics.moveTo(x - size * 0.2, y);
-        graphics.lineTo(x + size * 0.2, y);
-        graphics.moveTo(x, y - size * 0.2);
-        graphics.lineTo(x, y + size * 0.2);
+        graphics.moveTo(-size * 0.2, 0);
+        graphics.lineTo(size * 0.2, 0);
+        graphics.moveTo(0, -size * 0.2);
+        graphics.lineTo(0, size * 0.2);
         graphics.stroke({ color: 0x000000, alpha: 0.3, width: 1 });
       },
       // Star
-      (x: number, y: number) => {
+      () => {
         for (let i = 0; i < 5; i++) {
           const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
-          const px = x + Math.cos(angle) * size * 0.15;
-          const py = y + Math.sin(angle) * size * 0.15;
-          graphics.moveTo(x, y);
-          graphics.lineTo(px, py);
+          const x = Math.cos(angle) * size * 0.15;
+          const y = Math.sin(angle) * size * 0.15;
+          graphics.moveTo(0, 0);
+          graphics.lineTo(x, y);
         }
         graphics.stroke({ color: 0x000000, alpha: 0.3, width: 2 });
       },
       // Spiral
-      (x: number, y: number) => {
-        graphics.moveTo(x, y);
+      () => {
+        graphics.moveTo(0, 0);
         for (let i = 0; i < 50; i++) {
           const angle = i * 0.2;
           const radius = i * 2;
-          const px = x + Math.cos(angle) * radius;
-          const py = y + Math.sin(angle) * radius;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
           if (radius < size * 0.3) {
-            graphics.lineTo(px, py);
+            graphics.lineTo(x, y);
           }
         }
         graphics.stroke({ color: 0x000000, alpha: 0.2, width: 1 });
       }
     ];
-    
-    // Draw random symbols at different positions
-    for (let i = 0; i < 3; i++) {
-      const x = -size * 0.5 + Math.random() * size;
-      const y = -size * 0.5 + Math.random() * size;
-      const symbolIndex = Math.floor(Math.random() * symbols.length);
-      symbols[symbolIndex](x, y);
-    }
-  }
     
     // Draw random symbols
     for (let i = 0; i < 3; i++) {
@@ -874,32 +844,6 @@ export class ArtisticFishPixi extends PIXI.Container {
       graphics.restore();
     }
   }
-
-
-  private createGradientTexture(width: number, height: number, colors: string[]): PIXI.Texture {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d')!;
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    colors.forEach((color, index) => {
-      gradient.addColorStop(index / (colors.length - 1), color);
-    });
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-    
-    return PIXI.Texture.from(canvas);
-}
-
-  private updateDisplacement(): void {
-    if (this.displacementFilter) {
-      // Direct access to scale property
-      this.displacementFilter.scale.x = 5 + Math.sin(this.shaderTime * 0.001) * 2;
-      this.displacementFilter.scale.y = 5 + Math.sin(this.shaderTime * 0.001) * 2;
-    }
-  }                    
 
   /**
    * Helper method to draw hexagon
