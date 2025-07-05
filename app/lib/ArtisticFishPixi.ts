@@ -116,11 +116,16 @@ export class ArtisticFishPixi extends PIXI.Container {
   // Performance flags
   private useCache: boolean = true;
   private isStatic: boolean = false;
+  private isCached: boolean = false;
+  
+  // Reference to app for renderer access
+  private app: PIXI.Application;
   
   constructor(dna: FishDNA, app: PIXI.Application) {
     super();
     
     this.dna = dna;
+    this.app = app;
     
     // Create container hierarchy
     this.fishContainer = new PIXI.Container();
@@ -173,14 +178,39 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Apply color mutations
     this.applyColorMutations();
     
-    // Enable cacheAsTexture for static complex fish
+    // Enable caching for static complex fish
     if (this.dna.rarity === 'legendary' || this.dna.rarity === 'mythic' || this.dna.rarity === 'cosmic') {
       // Apply after initial render
       setTimeout(() => {
         if (this.isStatic) {
-          this.fishContainer.cacheAsTexture = true;
+          this.enableCaching();
         }
       }, 100);
+    }
+  }
+
+  /**
+   * Enables container caching for performance
+   */
+  private enableCaching(): void {
+    if (!this.isCached && this.fishContainer) {
+      // In PIXI v8, we use cacheAsTexture as a method
+      this.fishContainer.cacheAsTexture({
+        resolution: 2,
+        multisample: PIXI.MSAA_QUALITY.MEDIUM,
+        antialias: true
+      });
+      this.isCached = true;
+    }
+  }
+
+  /**
+   * Disables container caching
+   */
+  private disableCaching(): void {
+    if (this.isCached && this.fishContainer) {
+      this.fishContainer.cacheAsTexture(false);
+      this.isCached = false;
     }
   }
 
@@ -314,10 +344,12 @@ export class ArtisticFishPixi extends PIXI.Container {
     ];
     
     fragments.forEach((frag, i) => {
-      graphics.setTransform(frag.x, frag.y, 1, 1, frag.rot);
+      graphics.save();
+      graphics.translate(frag.x, frag.y);
+      graphics.rotate(frag.rot);
       graphics.rect(-frag.w/2, -frag.h/2, frag.w, frag.h);
       graphics.fill({ color: i % 2 === 0 ? primary : secondary });
-      graphics.setTransform(0, 0, 1, 1, 0);
+      graphics.restore();
     });
   }
 
@@ -804,13 +836,14 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     // Draw random symbols
     for (let i = 0; i < 3; i++) {
-      graphics.setTransform(
+      graphics.save();
+      graphics.translate(
         -size * 0.5 + Math.random() * size,
-        -size * 0.5 + Math.random() * size,
-        1, 1, Math.random() * Math.PI * 2
+        -size * 0.5 + Math.random() * size
       );
+      graphics.rotate(Math.random() * Math.PI * 2);
       symbols[Math.floor(Math.random() * symbols.length)]();
-      graphics.setTransform(0, 0, 1, 1, 0);
+      graphics.restore();
     }
   }
 
@@ -1695,7 +1728,7 @@ export class ArtisticFishPixi extends PIXI.Container {
     }
     
     // Dynamic color based on position
-    if ((this as any).dynamicColorEnabled) {
+    if ((this as any).dynamicColorEnabled && this.app) {
       const hueShift = (this.x / this.app.screen.width) * 0.2;
       const brightnessShift = (this.y / this.app.screen.height) * 0.1;
       
@@ -1753,9 +1786,9 @@ export class ArtisticFishPixi extends PIXI.Container {
       });
     }
     
-    // Disable cacheAsTexture during hover for smooth animations
-    if (this.fishContainer.cacheAsTexture) {
-      this.fishContainer.cacheAsTexture = false;
+    // Disable caching during hover for smooth animations
+    if (this.isCached) {
+      this.disableCaching();
     }
   }
 
@@ -1784,10 +1817,10 @@ export class ArtisticFishPixi extends PIXI.Container {
       });
     }
     
-    // Re-enable cacheAsTexture for performance
+    // Re-enable caching for performance
     if (this.isStatic && ['legendary', 'mythic', 'cosmic'].includes(this.dna.rarity)) {
       setTimeout(() => {
-        this.fishContainer.cacheAsTexture = true;
+        this.enableCaching();
       }, 100);
     }
   }
@@ -1800,9 +1833,10 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     if (isStatic && ['legendary', 'mythic', 'cosmic'].includes(this.dna.rarity)) {
       // Cache complex fish as texture for performance
-      this.fishContainer.cacheAsTexture = true;
+      this.enableCaching();
     } else {
-      this.fishContainer.cacheAsTexture = false;
+      // Disable caching for animated fish
+      this.disableCaching();
     }
   }
 
@@ -1814,6 +1848,11 @@ export class ArtisticFishPixi extends PIXI.Container {
     (this as any).anglerBulb = null;
     (this as any).fireContainer = null;
     (this as any).cosmicStarfield = null;
+    
+    // Disable caching before destroy
+    if (this.isCached) {
+      this.disableCaching();
+    }
     
     super.destroy({ children: true });
   }
