@@ -343,8 +343,8 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     fragments.forEach((frag, i) => {
       graphics.save();
-      graphics.translate(frag.x, frag.y);
-      graphics.rotate(frag.rot);
+      graphics.translateTransform(frag.x, frag.y);
+      graphics.rotateTransform(frag.rot);
       graphics.rect(-frag.w/2, -frag.h/2, frag.w, frag.h);
       graphics.fill({ color: i % 2 === 0 ? primary : secondary });
       graphics.restore();
@@ -835,15 +835,16 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Draw random symbols
     for (let i = 0; i < 3; i++) {
       graphics.save();
-      graphics.translate(
+      graphics.translateTransform(
         -size * 0.5 + Math.random() * size,
         -size * 0.5 + Math.random() * size
       );
-      graphics.rotate(Math.random() * Math.PI * 2);
+      graphics.rotateTransform(Math.random() * Math.PI * 2);
       symbols[Math.floor(Math.random() * symbols.length)]();
       graphics.restore();
     }
   }
+
 
   /**
    * Helper method to draw hexagon
