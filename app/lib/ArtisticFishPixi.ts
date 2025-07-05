@@ -333,7 +333,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   private drawDeconstructedFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
-    // Floating geometric fragments
+  // Floating geometric fragments
     const fragments = [
       { x: 0, y: 0, w: size * 0.4, h: size * 0.3, rot: 0 },
       { x: size * 0.3, y: -size * 0.1, w: size * 0.3, h: size * 0.2, rot: 0.2 },
@@ -344,7 +344,12 @@ export class ArtisticFishPixi extends PIXI.Container {
     fragments.forEach((frag, i) => {
       graphics.save();
       graphics.translateTransform(frag.x, frag.y);
-      graphics.rotateTransform(frag.rot);
+      
+      // Use transform() with rotation matrix instead of rotateTransform()
+      const cos = Math.cos(frag.rot);
+      const sin = Math.sin(frag.rot);
+      graphics.transform(cos, sin, -sin, cos, 0, 0);
+      
       graphics.rect(-frag.w/2, -frag.h/2, frag.w, frag.h);
       graphics.fill({ color: i % 2 === 0 ? primary : secondary });
       graphics.restore();
@@ -839,7 +844,13 @@ export class ArtisticFishPixi extends PIXI.Container {
         -size * 0.5 + Math.random() * size,
         -size * 0.5 + Math.random() * size
       );
-      graphics.rotateTransform(Math.random() * Math.PI * 2);
+      
+      // Use transform() with rotation matrix instead of rotateTransform()
+      const rotation = Math.random() * Math.PI * 2;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+      graphics.transform(cos, sin, -sin, cos, 0, 0);
+      
       symbols[Math.floor(Math.random() * symbols.length)]();
       graphics.restore();
     }
@@ -1460,13 +1471,16 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Create particle texture
     const particleTexture = this.createParticleTexture();
     
-    // Use ParticleContainer for better performance
-    this.particleContainer = new PIXI.ParticleContainer(particleCount, {
-      position: true,
-      rotation: false,
-      scale: true,
-      alpha: true,
-      tint: true
+    // Use ParticleContainer for better performance - PIXI v8 syntax
+    this.particleContainer = new PIXI.ParticleContainer({
+      maxSize: particleCount,
+      properties: {
+        position: true,
+        rotation: false,
+        scale: true,
+        alpha: true,
+        tint: true
+      }
     });
     
     this.addChild(this.particleContainer);
