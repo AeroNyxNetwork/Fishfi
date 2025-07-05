@@ -2,23 +2,25 @@
  * ArtisticFishPixi.ts
  * 
  * Premium artistic fish generation system for PIXI.js v8
- * Creates museum-quality, NFT-worthy fish with sophisticated visual effects
+ * Enhanced with performance optimizations and sophisticated visual effects
  * 
- * @version 2.0.0
+ * @version 3.0.0
  * @requires pixi.js ^8.0.0
  * @path app/lib/ArtisticFishPixi.ts
  */
 
 import * as PIXI from 'pixi.js';
+import { GeometryCache } from './GeometryCache';
 
 /**
- * Fish DNA structure defining all genetic traits
+ * Enhanced Fish DNA structure with new artistic properties
  */
 export interface FishDNA {
   id: string;
   species: string;
   bodyShape: string;
   pattern: string;
+  surfaceType?: 'matte' | 'procedural_noise' | 'glitch_sort' | 'liquid_metal';
   colors: {
     primary: string;
     secondary: string;
@@ -35,6 +37,9 @@ export interface FishDNA {
     aggression: number;
     intelligence: number;
   };
+  // New artistic properties
+  artStyle?: 'minimalist' | 'baroque' | 'abstract' | 'organic';
+  dynamicColor?: boolean;
 }
 
 /**
@@ -63,46 +68,54 @@ export interface FishTemplate {
 
 // Extended body shapes for more variety
 export type BodyShapeType = 
-  | 'round'          // Goldfish, pufferfish
-  | 'streamlined'    // Tuna, barracuda
-  | 'diamond'        // Angelfish
-  | 'massive'        // Whale, grouper
-  | 'serpentine'     // Eel, sea snake
-  | 'flat'           // Flounder, ray
-  | 'elongated'      // Needlefish, pipefish
-  | 'triangular'     // Boxfish
-  | 'crescent'       // Moorish idol
-  | 'oval'           // Surgeonfish
-  | 'compressed'     // Butterflyfish
-  | 'cylindrical'    // Moray eel
-  | 'asymmetrical'   // Halibut
-  | 'bulbous'        // Anglerfish
-  | 'spade';         // Batfish
+  | 'round'          
+  | 'streamlined'    
+  | 'diamond'        
+  | 'massive'        
+  | 'serpentine'     
+  | 'flat'           
+  | 'elongated'      
+  | 'triangular'     
+  | 'crescent'       
+  | 'oval'           
+  | 'compressed'     
+  | 'cylindrical'    
+  | 'asymmetrical'   
+  | 'bulbous'        
+  | 'spade'
+  | 'architectural'  // New artistic shapes
+  | 'deconstructed'
+  | 'tessellated'
+  | 'calligraphic';
 
 /**
- * Premium artistic fish class for PIXI.js v8
- * Creates visually stunning fish with advanced rendering techniques
+ * Premium artistic fish class with enhanced performance
  */
 export class ArtisticFishPixi extends PIXI.Container {
   public dna: FishDNA;
-  private baseSize: number = 120; // Base size for high-quality rendering
+  private baseSize: number = 120;
   private fishContainer: PIXI.Container;
   private bodySprite!: PIXI.Sprite;
   private patternSprite?: PIXI.Sprite;
   private overlaySprite?: PIXI.Sprite;
   private glowContainer?: PIXI.Container;
-  private particleContainer?: PIXI.Container;
+  private particleContainer?: PIXI.ParticleContainer; // Changed to ParticleContainer
   
-  // Advanced visual effects
+  // Enhanced visual effects
   private shaderTime: number = 0;
   private colorMatrixFilter?: PIXI.ColorMatrixFilter;
   private displacementFilter?: PIXI.DisplacementFilter;
   private blurFilter?: PIXI.BlurFilter;
+  private customShader?: PIXI.Filter;
   
   // Animation properties
   private breathingSpeed: number = 0.002;
   private floatSpeed: number = 0.001;
   private shimmerSpeed: number = 0.003;
+  
+  // Performance flags
+  private useCache: boolean = true;
+  private isStatic: boolean = false;
   
   constructor(dna: FishDNA, app: PIXI.Application) {
     super();
@@ -113,7 +126,7 @@ export class ArtisticFishPixi extends PIXI.Container {
     this.fishContainer = new PIXI.Container();
     this.addChild(this.fishContainer);
     
-    // Generate the fish artwork
+    // Generate the fish artwork with caching
     this.createFish(app);
     
     // Apply rarity-based effects
@@ -133,10 +146,10 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   /**
-   * Creates the main fish artwork using advanced rendering
+   * Creates the main fish artwork using advanced rendering with caching
    */
   private createFish(app: PIXI.Application): void {
-    // Generate high-quality fish texture
+    // Generate high-quality fish texture with caching
     const fishTexture = this.generateFishArtwork(app.renderer);
     
     // Create main body sprite
@@ -149,26 +162,71 @@ export class ArtisticFishPixi extends PIXI.Container {
       this.addPatternOverlay(app.renderer);
     }
     
+    // Add surface treatment
+    if (this.dna.surfaceType) {
+      this.applySurfaceTreatment(app);
+    }
+    
     // Add special features based on DNA
     this.addSpecialFeatures(app);
     
     // Apply color mutations
     this.applyColorMutations();
+    
+    // Enable cacheAsTexture for static complex fish
+    if (this.dna.rarity === 'legendary' || this.dna.rarity === 'mythic' || this.dna.rarity === 'cosmic') {
+      // Apply after initial render
+      setTimeout(() => {
+        if (this.isStatic) {
+          this.fishContainer.cacheAsTexture = true;
+        }
+      }, 100);
+    }
   }
 
   /**
-   * Generates the high-quality fish artwork
+   * Generates the high-quality fish artwork with caching
    */
   private generateFishArtwork(renderer: PIXI.Renderer): PIXI.Texture {
-    const graphics = new PIXI.Graphics();
-    const size = this.baseSize;
+    // Create cache key
+    const cacheKey = `fish-body-${this.dna.species}-${this.dna.bodyShape}-${this.dna.colors.primary}`;
     
-    // Set up gradient fills
+    if (this.useCache) {
+      return GeometryCache.getBakedTexture(renderer, cacheKey, (graphics) => {
+        this.drawFishBody(graphics);
+      });
+    }
+    
+    // Fallback to direct generation
+    const graphics = new PIXI.Graphics();
+    this.drawFishBody(graphics);
+    
+    const bounds = graphics.getLocalBounds();
+    const texture = renderer.generateTexture({
+      target: graphics,
+      resolution: 2,
+      frame: new PIXI.Rectangle(
+        bounds.x - 20,
+        bounds.y - 20,
+        bounds.width + 40,
+        bounds.height + 40
+      )
+    });
+    
+    graphics.destroy();
+    return texture;
+  }
+
+  /**
+   * Draws the fish body based on shape
+   */
+  private drawFishBody(graphics: PIXI.Graphics): void {
+    const size = this.baseSize;
     const primaryColor = PIXI.Color.shared.setValue(this.dna.colors.primary).toNumber();
     const secondaryColor = PIXI.Color.shared.setValue(this.dna.colors.secondary).toNumber();
     const accentColor = PIXI.Color.shared.setValue(this.dna.colors.accent).toNumber();
     
-    // Draw based on body shape with smooth curves
+    // Draw based on body shape
     switch (this.dna.bodyShape) {
       case 'round':
         this.drawRoundFish(graphics, size, primaryColor, secondaryColor);
@@ -185,6 +243,18 @@ export class ArtisticFishPixi extends PIXI.Container {
       case 'serpentine':
         this.drawSerpentineFish(graphics, size, primaryColor, secondaryColor);
         break;
+      case 'architectural':
+        this.drawArchitecturalFish(graphics, size, primaryColor, secondaryColor);
+        break;
+      case 'deconstructed':
+        this.drawDeconstructedFish(graphics, size, primaryColor, secondaryColor);
+        break;
+      case 'tessellated':
+        this.drawTessellatedFish(graphics, size, primaryColor, secondaryColor);
+        break;
+      case 'calligraphic':
+        this.drawCalligraphicFish(graphics, size, primaryColor, secondaryColor);
+        break;
       default:
         this.drawRoundFish(graphics, size, primaryColor, secondaryColor);
     }
@@ -194,41 +264,125 @@ export class ArtisticFishPixi extends PIXI.Container {
     
     // Add details
     this.drawDetails(graphics, size);
-    
-    // Generate texture with antialiasing
-    const bounds = graphics.getLocalBounds();
-    const texture = renderer.generateTexture({
-      target: graphics,
-      resolution: 2, // Higher resolution for quality
-      frame: new PIXI.Rectangle(
-        bounds.x - 20,
-        bounds.y - 20,
-        bounds.width + 40,
-        bounds.height + 40
-      )
-    });
-    
-    graphics.destroy();
-    return texture;
   }
 
   /**
-   * Draws a round fish shape with smooth curves
+   * New artistic fish shapes
+   */
+  private drawArchitecturalFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
+    // Zaha Hadid inspired flowing curves
+    graphics.moveTo(size * 0.5, 0);
+    graphics.bezierCurveTo(
+      size * 0.4, -size * 0.4,
+      -size * 0.2, -size * 0.3,
+      -size * 0.5, -size * 0.1
+    );
+    graphics.bezierCurveTo(
+      -size * 0.6, 0,
+      -size * 0.6, size * 0.1,
+      -size * 0.5, size * 0.2
+    );
+    graphics.bezierCurveTo(
+      -size * 0.2, size * 0.3,
+      size * 0.4, size * 0.4,
+      size * 0.5, 0
+    );
+    graphics.fill({ color: primary });
+    
+    // Inner structure
+    graphics.moveTo(size * 0.3, 0);
+    graphics.bezierCurveTo(
+      size * 0.2, -size * 0.2,
+      -size * 0.1, -size * 0.15,
+      -size * 0.3, 0
+    );
+    graphics.bezierCurveTo(
+      -size * 0.1, size * 0.15,
+      size * 0.2, size * 0.2,
+      size * 0.3, 0
+    );
+    graphics.fill({ color: secondary, alpha: 0.6 });
+  }
+
+  private drawDeconstructedFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
+    // Floating geometric fragments
+    const fragments = [
+      { x: 0, y: 0, w: size * 0.4, h: size * 0.3, rot: 0 },
+      { x: size * 0.3, y: -size * 0.1, w: size * 0.3, h: size * 0.2, rot: 0.2 },
+      { x: -size * 0.3, y: size * 0.1, w: size * 0.3, h: size * 0.2, rot: -0.2 },
+      { x: -size * 0.5, y: 0, w: size * 0.2, h: size * 0.15, rot: 0.3 }
+    ];
+    
+    fragments.forEach((frag, i) => {
+      graphics.setTransform(frag.x, frag.y, 1, 1, frag.rot);
+      graphics.rect(-frag.w/2, -frag.h/2, frag.w, frag.h);
+      graphics.fill({ color: i % 2 === 0 ? primary : secondary });
+      graphics.setTransform(0, 0, 1, 1, 0);
+    });
+  }
+
+  private drawTessellatedFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
+    // Hexagonal tessellation
+    const hexSize = size * 0.08;
+    const rows = 8;
+    const cols = 10;
+    
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const x = -size * 0.4 + col * hexSize * 1.5;
+        const y = -size * 0.3 + row * hexSize * 1.73 + (col % 2) * hexSize * 0.87;
+        
+        // Check if within fish bounds
+        const dist = Math.sqrt(x * x + (y * y * 1.5));
+        if (dist < size * 0.5) {
+          this.drawHexagon(graphics, x, y, hexSize * 0.5);
+          graphics.fill({ 
+            color: (row + col) % 2 === 0 ? primary : secondary,
+            alpha: 1 - dist / (size * 0.5) * 0.3
+          });
+        }
+      }
+    }
+  }
+
+  private drawCalligraphicFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
+    // Single brushstroke style
+    graphics.moveTo(size * 0.5, 0);
+    graphics.bezierCurveTo(
+      size * 0.3, -size * 0.1,
+      size * 0.1, -size * 0.15,
+      -size * 0.1, -size * 0.1
+    );
+    graphics.bezierCurveTo(
+      -size * 0.3, -size * 0.05,
+      -size * 0.5, 0,
+      -size * 0.6, size * 0.05
+    );
+    graphics.bezierCurveTo(
+      -size * 0.5, size * 0.1,
+      -size * 0.3, size * 0.15,
+      -size * 0.1, size * 0.1
+    );
+    graphics.bezierCurveTo(
+      size * 0.1, size * 0.05,
+      size * 0.3, 0,
+      size * 0.5, 0
+    );
+    graphics.stroke({ color: primary, width: size * 0.15, cap: 'round', join: 'round' });
+    graphics.fill({ color: primary, alpha: 0.8 });
+  }
+
+  /**
+   * Existing fish shapes (keeping them for compatibility)
    */
   private drawRoundFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
     // Main body with gradient effect
     graphics.ellipse(0, 0, size * 0.6, size * 0.4);
-    graphics.fill({
-      color: primary,
-      alpha: 1
-    });
+    graphics.fill({ color: primary, alpha: 1 });
     
     // Secondary color belly
     graphics.ellipse(0, size * 0.15, size * 0.5, size * 0.25);
-    graphics.fill({
-      color: secondary,
-      alpha: 0.7
-    });
+    graphics.fill({ color: secondary, alpha: 0.7 });
     
     // Tail
     graphics.moveTo(-size * 0.5, 0);
@@ -245,9 +399,6 @@ export class ArtisticFishPixi extends PIXI.Container {
     graphics.fill({ color: primary });
   }
 
-  /**
-   * Draws a streamlined fish shape
-   */
   private drawStreamlinedFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
     // Sleek body
     graphics.moveTo(size * 0.5, 0);
@@ -272,9 +423,6 @@ export class ArtisticFishPixi extends PIXI.Container {
     graphics.fill({ color: secondary });
   }
 
-  /**
-   * Draws a diamond-shaped fish
-   */
   private drawDiamondFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
     // Diamond body
     graphics.moveTo(size * 0.4, 0);
@@ -293,9 +441,6 @@ export class ArtisticFishPixi extends PIXI.Container {
     graphics.fill({ color: secondary, alpha: 0.6 });
   }
 
-  /**
-   * Draws a massive fish shape
-   */
   private drawMassiveFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
     // Bulky body
     graphics.ellipse(0, 0, size * 0.7, size * 0.5);
@@ -310,9 +455,6 @@ export class ArtisticFishPixi extends PIXI.Container {
     graphics.fill({ color: secondary, alpha: 0.5 });
   }
 
-  /**
-   * Draws a serpentine fish shape
-   */
   private drawSerpentineFish(graphics: PIXI.Graphics, size: number, primary: number, secondary: number): void {
     // Wavy body
     const segments = 5;
@@ -381,14 +523,30 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   /**
-   * Adds pattern overlay with advanced blending
+   * Adds pattern overlay with advanced blending and caching
    */
   private addPatternOverlay(renderer: PIXI.Renderer): void {
-    const graphics = new PIXI.Graphics();
+    const patternKey = `pattern-${this.dna.pattern}-${this.dna.species}`;
+    
+    const patternTexture = GeometryCache.getBakedTexture(renderer, patternKey, (graphics) => {
+      this.drawPattern(graphics, this.dna.pattern);
+    });
+    
+    this.patternSprite = new PIXI.Sprite(patternTexture);
+    this.patternSprite.anchor.set(0.5);
+    this.patternSprite.blendMode = 'multiply';
+    this.patternSprite.alpha = 0.5;
+    
+    this.fishContainer.addChild(this.patternSprite);
+  }
+
+  /**
+   * Unified pattern drawing method
+   */
+  private drawPattern(graphics: PIXI.Graphics, pattern: string): void {
     const size = this.baseSize;
     
-    // Generate pattern based on type
-    switch (this.dna.pattern) {
+    switch (pattern) {
       case 'stripes':
         this.drawStripesPattern(graphics, size);
         break;
@@ -407,28 +565,16 @@ export class ArtisticFishPixi extends PIXI.Container {
       case 'circuits':
         this.drawCircuitPattern(graphics, size);
         break;
+      case 'organic':
+        this.drawOrganicPattern(graphics, size);
+        break;
+      case 'geometric':
+        this.drawGeometricPattern(graphics, size);
+        break;
+      case 'mystic':
+        this.drawMysticPattern(graphics, size);
+        break;
     }
-    
-    // Create pattern texture
-    const bounds = graphics.getLocalBounds();
-    const patternTexture = renderer.generateTexture({
-      target: graphics,
-      resolution: 2,
-      frame: new PIXI.Rectangle(
-        bounds.x - 20,
-        bounds.y - 20,
-        bounds.width + 40,
-        bounds.height + 40
-      )
-    });
-    
-    this.patternSprite = new PIXI.Sprite(patternTexture);
-    this.patternSprite.anchor.set(0.5);
-    this.patternSprite.blendMode = 'multiply';
-    this.patternSprite.alpha = 0.5;
-    
-    this.fishContainer.addChild(this.patternSprite);
-    graphics.destroy();
   }
 
   /**
@@ -554,6 +700,202 @@ export class ArtisticFishPixi extends PIXI.Container {
       
       graphics.stroke({ color: 0x000000, alpha: 0.2, width: 1 });
     }
+  }
+
+  private drawOrganicPattern(graphics: PIXI.Graphics, size: number): void {
+    // Organic flowing lines
+    for (let i = 0; i < 5; i++) {
+      const startX = -size + Math.random() * size * 2;
+      const startY = -size + Math.random() * size * 2;
+      
+      graphics.moveTo(startX, startY);
+      
+      // Create flowing path
+      for (let j = 0; j < 10; j++) {
+        const t = j / 10;
+        const x = startX + Math.sin(t * Math.PI * 2 + i) * size * 0.3;
+        const y = startY + Math.cos(t * Math.PI * 2 + i) * size * 0.3;
+        
+        if (j === 0) {
+          graphics.lineTo(x, y);
+        } else {
+          const prevT = (j - 1) / 10;
+          const prevX = startX + Math.sin(prevT * Math.PI * 2 + i) * size * 0.3;
+          const prevY = startY + Math.cos(prevT * Math.PI * 2 + i) * size * 0.3;
+          const cpX = (prevX + x) / 2 + (Math.random() - 0.5) * size * 0.1;
+          const cpY = (prevY + y) / 2 + (Math.random() - 0.5) * size * 0.1;
+          graphics.quadraticCurveTo(cpX, cpY, x, y);
+        }
+      }
+      
+      graphics.stroke({ color: 0x000000, alpha: 0.15, width: 3 });
+    }
+  }
+
+  private drawGeometricPattern(graphics: PIXI.Graphics, size: number): void {
+    // Geometric shapes grid
+    const shapes = ['triangle', 'square', 'hexagon'];
+    const shapeSize = size * 0.1;
+    
+    for (let i = 0; i < 20; i++) {
+      const x = -size + Math.random() * size * 2;
+      const y = -size + Math.random() * size * 2;
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      
+      switch (shape) {
+        case 'triangle':
+          graphics.moveTo(x, y - shapeSize/2);
+          graphics.lineTo(x - shapeSize/2, y + shapeSize/2);
+          graphics.lineTo(x + shapeSize/2, y + shapeSize/2);
+          graphics.closePath();
+          break;
+        case 'square':
+          graphics.rect(x - shapeSize/2, y - shapeSize/2, shapeSize, shapeSize);
+          break;
+        case 'hexagon':
+          this.drawHexagon(graphics, x, y, shapeSize/2);
+          break;
+      }
+      
+      graphics.fill({ color: 0x000000, alpha: 0.1 });
+      graphics.stroke({ color: 0x000000, alpha: 0.2, width: 1 });
+    }
+  }
+
+  private drawMysticPattern(graphics: PIXI.Graphics, size: number): void {
+    // Mystical symbols
+    const symbols = [
+      // Circle with cross
+      () => {
+        graphics.circle(0, 0, size * 0.2);
+        graphics.stroke({ color: 0x000000, alpha: 0.3, width: 2 });
+        graphics.moveTo(-size * 0.2, 0);
+        graphics.lineTo(size * 0.2, 0);
+        graphics.moveTo(0, -size * 0.2);
+        graphics.lineTo(0, size * 0.2);
+        graphics.stroke({ color: 0x000000, alpha: 0.3, width: 1 });
+      },
+      // Star
+      () => {
+        for (let i = 0; i < 5; i++) {
+          const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+          const x = Math.cos(angle) * size * 0.15;
+          const y = Math.sin(angle) * size * 0.15;
+          graphics.moveTo(0, 0);
+          graphics.lineTo(x, y);
+        }
+        graphics.stroke({ color: 0x000000, alpha: 0.3, width: 2 });
+      },
+      // Spiral
+      () => {
+        graphics.moveTo(0, 0);
+        for (let i = 0; i < 50; i++) {
+          const angle = i * 0.2;
+          const radius = i * 2;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (radius < size * 0.3) {
+            graphics.lineTo(x, y);
+          }
+        }
+        graphics.stroke({ color: 0x000000, alpha: 0.2, width: 1 });
+      }
+    ];
+    
+    // Draw random symbols
+    for (let i = 0; i < 3; i++) {
+      graphics.setTransform(
+        -size * 0.5 + Math.random() * size,
+        -size * 0.5 + Math.random() * size,
+        1, 1, Math.random() * Math.PI * 2
+      );
+      symbols[Math.floor(Math.random() * symbols.length)]();
+      graphics.setTransform(0, 0, 1, 1, 0);
+    }
+  }
+
+  /**
+   * Helper method to draw hexagon
+   */
+  private drawHexagon(graphics: PIXI.Graphics, x: number, y: number, size: number): void {
+    const points: PIXI.Point[] = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      points.push(new PIXI.Point(
+        x + Math.cos(angle) * size,
+        y + Math.sin(angle) * size
+      ));
+    }
+    
+    graphics.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      graphics.lineTo(points[i].x, points[i].y);
+    }
+    graphics.closePath();
+  }
+
+  /**
+   * Applies surface treatments for artistic enhancement
+   */
+  private applySurfaceTreatment(app: PIXI.Application): void {
+    switch (this.dna.surfaceType) {
+      case 'matte':
+        // Simple matte finish - no additional effects needed
+        break;
+        
+      case 'procedural_noise':
+        this.applyProceduralNoise(app);
+        break;
+        
+      case 'glitch_sort':
+        this.applyGlitchSort();
+        break;
+        
+      case 'liquid_metal':
+        this.applyLiquidMetal();
+        break;
+    }
+  }
+
+  private applyProceduralNoise(app: PIXI.Application): void {
+    // Create a custom noise filter
+    const noiseFilter = new PIXI.NoiseFilter({
+      noise: 0.1,
+      seed: Math.random()
+    });
+    
+    this.fishContainer.filters = [
+      ...(this.fishContainer.filters || []),
+      noiseFilter
+    ];
+  }
+
+  private applyGlitchSort(): void {
+    // Simplified glitch effect using color matrix
+    const glitchFilter = new PIXI.ColorMatrixFilter();
+    glitchFilter.matrix = [
+      1, 0.1, 0, 0, 0,
+      0, 1, 0.1, 0, 0,
+      0.1, 0, 1, 0, 0,
+      0, 0, 0, 1, 0
+    ];
+    
+    this.fishContainer.filters = [
+      ...(this.fishContainer.filters || []),
+      glitchFilter
+    ];
+  }
+
+  private applyLiquidMetal(): void {
+    // Metallic sheen effect
+    const metallicFilter = new PIXI.ColorMatrixFilter();
+    metallicFilter.brightness(1.3, false);
+    metallicFilter.contrast(1.5, false);
+    
+    this.fishContainer.filters = [
+      ...(this.fishContainer.filters || []),
+      metallicFilter
+    ];
   }
 
   /**
@@ -831,31 +1173,14 @@ export class ArtisticFishPixi extends PIXI.Container {
         // Check if within fish bounds (rough approximation)
         if (Math.abs(x) < this.baseSize * 0.4 && Math.abs(y) < this.baseSize * 0.3) {
           this.drawHexagon(armor, x, y, plateSize * 0.4);
+          armor.stroke({ color: 0x888888, width: 1 });
+          armor.fill({ color: 0xaaaaaa, alpha: 0.2 });
         }
       }
     }
     
     armor.alpha = 0.3;
     this.fishContainer.addChild(armor);
-  }
-  
-  private drawHexagon(graphics: PIXI.Graphics, x: number, y: number, size: number): void {
-    const points: PIXI.Point[] = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-      points.push(new PIXI.Point(
-        x + Math.cos(angle) * size,
-        y + Math.sin(angle) * size
-      ));
-    }
-    
-    graphics.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      graphics.lineTo(points[i].x, points[i].y);
-    }
-    graphics.closePath();
-    graphics.stroke({ color: 0x888888, width: 1 });
-    graphics.fill({ color: 0xaaaaaa, alpha: 0.2 });
   }
   
   /**
@@ -951,14 +1276,19 @@ export class ArtisticFishPixi extends PIXI.Container {
       cyber.moveTo(startX, startY);
       
       // Draw circuit path
+      let x = startX;
+      let y = startY;
       for (let j = 0; j < 3; j++) {
-        const endX = startX + (Math.random() - 0.5) * this.baseSize * 0.2;
-        const endY = startY + (Math.random() - 0.5) * this.baseSize * 0.2;
+        const endX = x + (Math.random() - 0.5) * this.baseSize * 0.2;
+        const endY = y + (Math.random() - 0.5) * this.baseSize * 0.2;
         cyber.lineTo(endX, endY);
         
         // Add node
         cyber.circle(endX, endY, 2);
         cyber.fill({ color: 0x00ff00, alpha: 0.8 });
+        
+        x = endX;
+        y = endY;
       }
       
       cyber.stroke({ color: 0x00ff00, width: 1, alpha: 0.6 });
@@ -1006,13 +1336,28 @@ export class ArtisticFishPixi extends PIXI.Container {
       this.fishContainer.alpha = 0.7;
     }
     
+    // Holographic effect
+    if (this.dna.mutations.includes('holographic')) {
+      const rgbSplitFilter = new PIXI.ColorMatrixFilter();
+      rgbSplitFilter.matrix = [
+        1.2, 0, 0, 0, 0,
+        0, 1.2, 0, 0, 0,
+        0, 0, 1.2, 0, 0,
+        0, 0, 0, 1, 0
+      ];
+      filters.push(rgbSplitFilter);
+    }
+    
     if (filters.length > 0) {
-      this.fishContainer.filters = filters;
+      this.fishContainer.filters = [
+        ...(this.fishContainer.filters || []),
+        ...filters
+      ];
     }
   }
 
   /**
-   * Applies rarity-based visual effects
+   * Applies rarity-based visual effects with optimizations
    */
   private applyRarityEffects(app: PIXI.Application): void {
     // Glow effect for rare+ fish
@@ -1020,7 +1365,7 @@ export class ArtisticFishPixi extends PIXI.Container {
       this.createGlowEffect();
     }
     
-    // Particle effects for epic+ fish
+    // Particle effects for epic+ fish - using ParticleContainer
     if (['epic', 'legendary', 'mythic', 'cosmic'].includes(this.dna.rarity)) {
       this.createParticleEffects();
     }
@@ -1072,57 +1417,71 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   /**
-   * Creates particle effects
+   * Creates particle effects using ParticleContainer for performance
    */
   private createParticleEffects(): void {
-    this.particleContainer = new PIXI.Container();
-    this.addChild(this.particleContainer);
-    
     const particleCount = 
       this.dna.rarity === 'cosmic' ? 30 :
       this.dna.rarity === 'mythic' ? 20 :
       this.dna.rarity === 'legendary' ? 15 : 10;
     
+    // Create particle texture
+    const particleTexture = this.createParticleTexture();
+    
+    // Use ParticleContainer for better performance
+    this.particleContainer = new PIXI.ParticleContainer(particleCount, {
+      position: true,
+      rotation: false,
+      scale: true,
+      alpha: true,
+      tint: true
+    });
+    
+    this.addChild(this.particleContainer);
+    
+    // Create particles
     for (let i = 0; i < particleCount; i++) {
-      this.createParticle(i);
+      this.createParticle(i, particleTexture);
     }
+  }
+
+  /**
+   * Creates particle texture
+   */
+  private createParticleTexture(): PIXI.Texture {
+    const graphics = new PIXI.Graphics();
+    
+    if (this.dna.rarity === 'cosmic') {
+      // Star shape
+      graphics.star(0, 0, 5, 4, 2);
+      graphics.fill({ color: 0xffffff });
+    } else {
+      // Circle
+      graphics.circle(0, 0, 3);
+      graphics.fill({ color: 0xffffff });
+    }
+    
+    return this.app.renderer.generateTexture(graphics);
   }
 
   /**
    * Creates a single particle
    */
-  private createParticle(index: number): void {
-    const particle = new PIXI.Graphics();
-    const size = 1 + Math.random() * 3;
-    
-    // Different particle styles based on rarity
-    if (this.dna.rarity === 'cosmic') {
-      // Star-shaped particles
-      const points = 5;
-      const outerRadius = size;
-      const innerRadius = size * 0.5;
-      
-      particle.star(0, 0, points, outerRadius, innerRadius);
-      particle.fill({ 
-        color: 0xffffff,
-        alpha: 0.8
-      });
-    } else {
-      // Circle particles
-      particle.circle(0, 0, size);
-      particle.fill({ 
-        color: this.dna.colors.glow ? 
-          PIXI.Color.shared.setValue(this.dna.colors.glow).toNumber() : 
-          0xffffff,
-        alpha: 0.6
-      });
-    }
+  private createParticle(index: number, texture: PIXI.Texture): void {
+    const particle = new PIXI.Sprite(texture);
     
     // Set initial position
     const angle = (index / 10) * Math.PI * 2;
     const distance = 50 + Math.random() * 50;
     particle.x = Math.cos(angle) * distance;
     particle.y = Math.sin(angle) * distance;
+    
+    // Set properties
+    particle.scale.set(0.5 + Math.random() * 0.5);
+    particle.alpha = 0.6;
+    particle.tint = this.dna.colors.glow ? 
+      PIXI.Color.shared.setValue(this.dna.colors.glow).toNumber() : 
+      0xffffff;
     
     // Store animation data
     (particle as any).orbitAngle = angle;
@@ -1146,6 +1505,11 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Chromatic aberration for mythic/cosmic
     if (['mythic', 'cosmic'].includes(this.dna.rarity)) {
       this.addChromaticAberration();
+    }
+    
+    // Dynamic color system if enabled
+    if (this.dna.dynamicColor) {
+      this.enableDynamicColors();
     }
   }
 
@@ -1226,6 +1590,14 @@ export class ArtisticFishPixi extends PIXI.Container {
   }
 
   /**
+   * Enables dynamic color system
+   */
+  private enableDynamicColors(): void {
+    // Environmental hue shift based on position
+    (this as any).dynamicColorEnabled = true;
+  }
+
+  /**
    * Adds cosmic-specific effects
    */
   private addCosmicEffects(): void {
@@ -1248,6 +1620,7 @@ export class ArtisticFishPixi extends PIXI.Container {
     }
     
     this.fishContainer.addChild(starfield);
+    (this as any).cosmicStarfield = starfield;
   }
 
   /**
@@ -1297,13 +1670,45 @@ export class ArtisticFishPixi extends PIXI.Container {
     }
     
     // Update cosmic starfield
-    if (this.dna.rarity === 'cosmic') {
-      const starfield = this.fishContainer.children.find(child => child.mask === this.bodySprite);
-      if (starfield) {
-        starfield.children.forEach((star: any) => {
-          star.alpha = 0.3 + Math.sin(this.shaderTime * star.twinkleSpeed + star.twinkleOffset) * 0.5;
-        });
+    if ((this as any).cosmicStarfield) {
+      const starfield = (this as any).cosmicStarfield;
+      starfield.children.forEach((star: any) => {
+        star.alpha = 0.3 + Math.sin(this.shaderTime * star.twinkleSpeed + star.twinkleOffset) * 0.5;
+      });
+    }
+    
+    // Update fire effects
+    if ((this as any).fireContainer) {
+      const fireContainer = (this as any).fireContainer;
+      fireContainer.children.forEach((flame: any) => {
+        if (flame.baseY !== undefined) {
+          flame.y = flame.baseY + Math.sin(this.shaderTime * flame.speed + flame.phase) * 5;
+          flame.alpha = 0.6 + Math.sin(this.shaderTime * 0.003 + flame.phase) * 0.2;
+        }
+      });
+    }
+    
+    // Update angler bulb
+    if ((this as any).anglerBulb) {
+      const bulb = (this as any).anglerBulb;
+      bulb.alpha = 0.5 + Math.sin(this.shaderTime * 0.005) * 0.3;
+    }
+    
+    // Dynamic color based on position
+    if ((this as any).dynamicColorEnabled) {
+      const hueShift = (this.x / this.app.screen.width) * 0.2;
+      const brightnessShift = (this.y / this.app.screen.height) * 0.1;
+      
+      if (!this.colorMatrixFilter) {
+        this.colorMatrixFilter = new PIXI.ColorMatrixFilter();
+        this.fishContainer.filters = [
+          ...(this.fishContainer.filters || []),
+          this.colorMatrixFilter
+        ];
       }
+      
+      this.colorMatrixFilter.hue(hueShift * 360, false);
+      this.colorMatrixFilter.brightness(1 + brightnessShift, false);
     }
   }
 
@@ -1347,6 +1752,11 @@ export class ArtisticFishPixi extends PIXI.Container {
         particle.orbitSpeed *= 2;
       });
     }
+    
+    // Disable cacheAsTexture during hover for smooth animations
+    if (this.fishContainer.cacheAsTexture) {
+      this.fishContainer.cacheAsTexture = false;
+    }
   }
 
   /**
@@ -1373,12 +1783,38 @@ export class ArtisticFishPixi extends PIXI.Container {
         particle.orbitSpeed /= 2;
       });
     }
+    
+    // Re-enable cacheAsTexture for performance
+    if (this.isStatic && ['legendary', 'mythic', 'cosmic'].includes(this.dna.rarity)) {
+      setTimeout(() => {
+        this.fishContainer.cacheAsTexture = true;
+      }, 100);
+    }
+  }
+
+  /**
+   * Sets whether the fish is static (for performance optimization)
+   */
+  public setStatic(isStatic: boolean): void {
+    this.isStatic = isStatic;
+    
+    if (isStatic && ['legendary', 'mythic', 'cosmic'].includes(this.dna.rarity)) {
+      // Cache complex fish as texture for performance
+      this.fishContainer.cacheAsTexture = true;
+    } else {
+      this.fishContainer.cacheAsTexture = false;
+    }
   }
 
   /**
    * Cleanup method
    */
   public destroy(): void {
+    // Clear references
+    (this as any).anglerBulb = null;
+    (this as any).fireContainer = null;
+    (this as any).cosmicStarfield = null;
+    
     super.destroy({ children: true });
   }
 }
