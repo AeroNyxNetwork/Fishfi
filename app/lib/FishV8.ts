@@ -223,8 +223,8 @@ export class FishV8 extends PIXI.Container {
     let time = 0;
     const ticker = PIXI.Ticker.shared;
     
-    const animate = () => {
-      time += ticker.deltaTime;
+    const animate = (t: PIXI.Ticker) => {
+      time += t.deltaTime;
       damageText.position.y -= 1;
       damageText.alpha -= 0.02;
       
