@@ -93,7 +93,7 @@ interface FormationConfig {
  * Active fish tracking with enhanced properties
  */
 interface ActiveFish {
-  id: string;  // Add this line
+  id: string;
   fish: ArtisticFishPixi;
   category: FishCategory;
   behavior: FishBehavior;
@@ -110,6 +110,33 @@ interface ActiveFish {
 }
 
 /**
+ * Special formation type
+ */
+interface SpecialFormation {
+  id: string;
+  type: 'circle' | 'spiral' | 'wave';
+  fish: ActiveFish[];
+  centerX: number;
+  centerY: number;
+  radius: number;
+  startTime: number;
+  duration: number;
+}
+
+/**
+ * Spawn event interface
+ */
+interface SpawnEvent {
+  time: number;
+  category: FishCategory;
+  species: string;
+  count: number;
+  formation?: FormationType;
+  behavior: Partial<FishBehavior>;
+  entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
+}
+
+/**
  * Optimized fish swimming system
  */
 export class FishSwimmingSystem {
@@ -117,6 +144,7 @@ export class FishSwimmingSystem {
   private container: PIXI.Container;
   private activeFish: Map<string, ActiveFish> = new Map();
   private formations: Map<string, FormationConfig> = new Map();
+  private specialFormations: Map<string, SpecialFormation> = new Map();
   
   // Screen boundaries
   private bounds = {
@@ -158,62 +186,186 @@ export class FishSwimmingSystem {
     this.initializeSpawnQueue();
   }
 
-  private getCategoryFromSpecies(species: string): FishCategory {
-    // Define your mapping logic here
-    const categoryMap: Record<string, FishCategory> = {
-      'neonTetra': FishCategory.SMALL,
-      'crystalShark': FishCategory.SMALL,
-      'goldfish': FishCategory.MEDIUM,
-      'voidAngel': FishCategory.LARGE,
-      'cosmicWhale': FishCategory.BOSS,
-      // Add more mappings as needed
-    };
-    
-    return categoryMap[species] || FishCategory.MEDIUM;
+  /**
+   * Gets the boss fish if active
+   */
+  private get bossFish(): ArtisticFishPixi | null {
+    return this.activeBoss?.fish || null;
   }
 
+  /**
+   * Updates screen boundaries
+   */
+  private updateBounds(): void {
+    const width = this.app.screen.width;
+    const height = this.app.screen.height;
+    
+    this.bounds = {
+      visibleArea: new PIXI.Rectangle(0, 0, width, height),
+      spawnArea: new PIXI.Rectangle(
+        -this.SPAWN_MARGIN,
+        -this.SPAWN_MARGIN,
+        width + this.SPAWN_MARGIN * 2,
+        height + this.SPAWN_MARGIN * 2
+      ),
+      despawnArea: new PIXI.Rectangle(
+        -this.DESPAWN_MARGIN,
+        -this.DESPAWN_MARGIN,
+        width + this.DESPAWN_MARGIN * 2,
+        height + this.DESPAWN_MARGIN * 2
+      )
+    };
+  }
 
-  private spawnFish(dna: FishDNA, entryPoint: PIXI.Point, exitPoint: PIXI.Point, behavior: Partial<FishBehavior>): void {
-    const fish = new ArtisticFishPixi(dna, this.app);
-    const fishId = `fish_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  /**
+   * Initializes rendering layers
+   */
+  private initializeLayers(): void {
+    for (let depth = 0; depth <= 5; depth++) {
+      const layer = new PIXI.Container();
+      layer.name = `layer_${depth}`;
+      this.layers.set(depth, layer);
+      this.container.addChild(layer);
+    }
+  }
+
+  /**
+   * Main update loop with optimizations
+   */
+  public update(deltaTime: number): void {
+    this.spawnTimer += deltaTime;
     
-    // Create the complete behavior
-    const completeBehavior: FishBehavior = {
-      speed: behavior.speed || 1.0,
-      pathType: behavior.pathType || PathType.LINEAR,
-      swimStyle: behavior.swimStyle || SwimStyle.STRAIGHT,
-      waveAmplitude: behavior.waveAmplitude || 10,
-      waveFrequency: behavior.waveFrequency || 0.002,
-      layerDepth: behavior.layerDepth || 2,
-      animationSpeed: behavior.animationSpeed || 1.0
-    };
+    this.processSpawnQueue();
+    this.updateFish(deltaTime);
+    this.updateFormations();
+    this.cleanupFish();
     
-    // Create the active fish entry
-    const activeFish: ActiveFish = {
-      id: fishId,  // Include the id here
-      fish,
-      category: this.getCategoryFromSpecies(dna.species),
-      behavior: completeBehavior,
-      path: this.generatePath(entryPoint, exitPoint, completeBehavior.pathType),
-      pathProgress: 0,
-      currentPosition: new PIXI.Point(entryPoint.x, entryPoint.y),
-      swimPhase: Math.random() * Math.PI * 2
-    };
-    
-    // Position the fish
-    fish.x = entryPoint.x;
-    fish.y = entryPoint.y;
-    
-    // Add to the appropriate layer
-    const layer = this.layers.get(completeBehavior.layerDepth);
-    if (layer) {
-      layer.addChild(fish);
+    if (!this.bossActive && this.activeFish.size < 20) {
+      this.dynamicSpawn();
+    }
+  }
+
+  /**
+   * Updates fish formations - handles group behaviors and special formation patterns
+   */
+  private updateFormations(): void {
+    // Update boss formation if boss is active
+    if (this.bossActive && this.bossFish) {
+      this.updateBossFormation();
     }
     
-    // Add to active fish map using the same id
-    this.activeFish.set(fishId, activeFish);
+    // Update school formations for regular fish
+    this.updateSchoolFormations();
+    
+    // Update any special formations (like during events)
+    if (this.specialFormations.size > 0) {
+      this.updateSpecialFormations();
+    }
   }
 
+  /**
+   * Updates the formation around the boss fish
+   */
+  private updateBossFormation(): void {
+    if (!this.activeBoss || !this.bossActive) return;
+    
+    const bossFish = this.activeBoss.fish;
+    
+    // Get minions that should follow the boss
+    const minions = Array.from(this.activeFish.values()).filter(activeFish => 
+      activeFish.formation?.leader === this.activeBoss
+    );
+    
+    // Update minion positions relative to boss
+    minions.forEach((minion, index) => {
+      const angle = (index / minions.length) * Math.PI * 2;
+      const radius = 150 + Math.sin(Date.now() * 0.001 + index) * 30;
+      
+      const targetX = bossFish.x + Math.cos(angle) * radius;
+      const targetY = bossFish.y + Math.sin(angle) * radius;
+      
+      // Update formation offset
+      if (!minion.formationOffset) {
+        minion.formationOffset = new PIXI.Point(0, 0);
+      }
+      
+      minion.formationOffset.x = targetX - minion.currentPosition.x;
+      minion.formationOffset.y = targetY - minion.currentPosition.y;
+    });
+  }
+
+  /**
+   * Updates school formations for regular fish
+   */
+  private updateSchoolFormations(): void {
+    // Group fish by species for schooling behavior
+    const schools = new Map<string, ActiveFish[]>();
+    
+    this.activeFish.forEach(activeFish => {
+      // Access the behavior through the ActiveFish interface
+      if (!activeFish.isLeader && activeFish.fish.dna.species) {
+        const species = activeFish.fish.dna.species;
+        if (!schools.has(species)) {
+          schools.set(species, []);
+        }
+        schools.get(species)!.push(activeFish);
+      }
+    });
+    
+    // Update each school
+    schools.forEach((schoolFish, species) => {
+      if (schoolFish.length < 3) return; // Need at least 3 fish for a school
+      
+      // Find the center of the school
+      let centerX = 0;
+      let centerY = 0;
+      schoolFish.forEach(activeFish => {
+        centerX += activeFish.fish.x;
+        centerY += activeFish.fish.y;
+      });
+      centerX /= schoolFish.length;
+      centerY /= schoolFish.length;
+      
+      // Apply cohesion and alignment forces
+      schoolFish.forEach(activeFish => {
+        const fish = activeFish.fish;
+        
+        // Cohesion - move towards center of school
+        const cohesionForce = 0.001;
+        const dx = centerX - fish.x;
+        const dy = centerY - fish.y;
+        
+        // Since we're using path-based movement, we need to adjust the path or add offset
+        // We can add a formation offset
+        if (!activeFish.formationOffset) {
+          activeFish.formationOffset = new PIXI.Point(0, 0);
+        }
+        
+        activeFish.formationOffset.x += dx * cohesionForce;
+        activeFish.formationOffset.y += dy * cohesionForce;
+        
+        // Separation - avoid getting too close to neighbors
+        schoolFish.forEach(other => {
+          if (other === activeFish) return;
+          
+          const otherFish = other.fish;
+          const distX = fish.x - otherFish.x;
+          const distY = fish.y - otherFish.y;
+          const dist = Math.sqrt(distX * distX + distY * distY);
+          
+          if (dist < 50 && dist > 0) {
+            const separationForce = 0.01 / dist;
+            activeFish.formationOffset.x += distX * separationForce;
+            activeFish.formationOffset.y += distY * separationForce;
+          }
+        });
+      });
+    });
+  }
+
+  /**
+   * Updates special formations (events, patterns, etc.)
+   */
   private updateSpecialFormations(): void {
     this.specialFormations.forEach((formation, id) => {
       const elapsed = Date.now() - formation.startTime;
@@ -272,182 +424,8 @@ export class FishSwimmingSystem {
   }
 
   /**
-   * Updates screen boundaries
+   * Creates a special formation
    */
-  private updateBounds(): void {
-    const width = this.app.screen.width;
-    const height = this.app.screen.height;
-    
-    this.bounds = {
-      visibleArea: new PIXI.Rectangle(0, 0, width, height),
-      spawnArea: new PIXI.Rectangle(
-        -this.SPAWN_MARGIN,
-        -this.SPAWN_MARGIN,
-        width + this.SPAWN_MARGIN * 2,
-        height + this.SPAWN_MARGIN * 2
-      ),
-      despawnArea: new PIXI.Rectangle(
-        -this.DESPAWN_MARGIN,
-        -this.DESPAWN_MARGIN,
-        width + this.DESPAWN_MARGIN * 2,
-        height + this.DESPAWN_MARGIN * 2
-      )
-    };
-  }
-
-  private specialFormations: Map<string, {
-    id: string;
-    type: 'circle' | 'spiral' | 'wave';
-    fish: ActiveFish[];  // Changed from FishEntity[] to ActiveFish[]
-    centerX: number;
-    centerY: number;
-    radius: number;
-    startTime: number;
-    duration: number;
-  }> = new Map();
-
-  /**
-   * Initializes rendering layers
-   */
-  private initializeLayers(): void {
-    for (let depth = 0; depth <= 5; depth++) {
-      const layer = new PIXI.Container();
-      layer.name = `layer_${depth}`;
-      this.layers.set(depth, layer);
-      this.container.addChild(layer);
-    }
-  }
-
-  // Replace the problematic type definitions with the correct ones
-
-// 1. Update the specialFormations property to use ActiveFish instead of FishEntity
-private specialFormations: Map<string, {
-  id: string;
-  type: 'circle' | 'spiral' | 'wave';
-  fish: ActiveFish[];  // Changed from FishEntity[] to ActiveFish[]
-  centerX: number;
-  centerY: number;
-  radius: number;
-  startTime: number;
-  duration: number;
-}> = new Map();
-
-// 2. Update the updateSchoolFormations method
-private updateSchoolFormations(): void {
-  // Group fish by species for schooling behavior
-  const schools = new Map<string, ActiveFish[]>();  // Changed from FishEntity[] to ActiveFish[]
-  
-  this.activeFish.forEach(activeFish => {
-    // Access the behavior through the ActiveFish interface
-    if (!activeFish.isLeader && activeFish.fish.dna.species) {
-      const species = activeFish.fish.dna.species;
-      if (!schools.has(species)) {
-        schools.set(species, []);
-      }
-      schools.get(species)!.push(activeFish);
-    }
-  });
-  
-  // Update each school
-  schools.forEach((schoolFish, species) => {
-    if (schoolFish.length < 3) return; // Need at least 3 fish for a school
-    
-    // Find the center of the school
-    let centerX = 0;
-    let centerY = 0;
-    schoolFish.forEach(activeFish => {
-      centerX += activeFish.fish.x;
-      centerY += activeFish.fish.y;
-    });
-    centerX /= schoolFish.length;
-    centerY /= schoolFish.length;
-    
-    // Apply cohesion and alignment forces
-    schoolFish.forEach(activeFish => {
-      const fish = activeFish.fish;
-      
-      // Cohesion - move towards center of school
-      const cohesionForce = 0.001;
-      const dx = centerX - fish.x;
-      const dy = centerY - fish.y;
-      
-      // Since we're using path-based movement, we need to adjust the path or add offset
-      // We can add a formation offset
-      if (!activeFish.formationOffset) {
-        activeFish.formationOffset = new PIXI.Point(0, 0);
-      }
-      
-      activeFish.formationOffset.x += dx * cohesionForce;
-      activeFish.formationOffset.y += dy * cohesionForce;
-      
-      // Separation - avoid getting too close to neighbors
-      schoolFish.forEach(other => {
-        if (other === activeFish) return;
-        
-        const otherFish = other.fish;
-        const distX = fish.x - otherFish.x;
-        const distY = fish.y - otherFish.y;
-        const dist = Math.sqrt(distX * distX + distY * distY);
-        
-        if (dist < 50 && dist > 0) {
-          const separationForce = 0.01 / dist;
-          activeFish.formationOffset.x += distX * separationForce;
-          activeFish.formationOffset.y += distY * separationForce;
-        }
-      });
-    });
-  });
-}
-
-  private get bossFish(): ArtisticFishPixi | null {
-    return this.activeBoss?.fish || null;
-  }
-
-  private updateFormations(): void {
-    // Update boss formation if boss is active
-    if (this.bossActive && this.bossFish) {
-      this.updateBossFormation();
-    }
-    
-    // Update school formations for regular fish
-    this.updateSchoolFormations();
-    
-    // Update any special formations (like during events)
-    if (this.specialFormations.size > 0) {
-      this.updateSpecialFormations();
-    }
-  }
-
-  private updateBossFormation(): void {
-    if (!this.activeBoss || !this.bossActive) return;
-    
-    const bossFish = this.activeBoss.fish;
-    
-    // Get minions that should follow the boss
-    const minions = Array.from(this.activeFish.values()).filter(activeFish => 
-      activeFish.formation?.leader === this.activeBoss
-    );
-    
-    // Update minion positions relative to boss
-    minions.forEach((minion, index) => {
-      const angle = (index / minions.length) * Math.PI * 2;
-      const radius = 150 + Math.sin(Date.now() * 0.001 + index) * 30;
-      
-      const targetX = bossFish.x + Math.cos(angle) * radius;
-      const targetY = bossFish.y + Math.sin(angle) * radius;
-      
-      // Update formation offset
-      if (!minion.formationOffset) {
-        minion.formationOffset = new PIXI.Point(0, 0);
-      }
-      
-      minion.formationOffset.x = targetX - minion.currentPosition.x;
-      minion.formationOffset.y = targetY - minion.currentPosition.y;
-    });
-  }
-
-
-
   public createFormation(type: 'circle' | 'spiral' | 'wave', centerX: number, centerY: number, radius: number = 100): void {
     const formationId = `formation_${Date.now()}`;
     
@@ -472,22 +450,6 @@ private updateSchoolFormations(): void {
       startTime: Date.now(),
       duration: 10000 // 10 seconds
     });
-  }
-  
-  /**
-   * Main update loop with optimizations
-   */
-  public update(deltaTime: number): void {
-    this.spawnTimer += deltaTime;
-    
-    this.processSpawnQueue();
-    this.updateFish(deltaTime);
-    this.updateFormations();
-    this.cleanupFish();
-    
-    if (!this.bossActive && this.activeFish.size < 20) {
-      this.dynamicSpawn();
-    }
   }
 
   /**
@@ -544,6 +506,313 @@ private updateSchoolFormations(): void {
       // Update fish animation
       fish.update(deltaTime);
     });
+  }
+
+  /**
+   * Processes spawn queue
+   */
+  private processSpawnQueue(): void {
+    const readySpawns = this.spawnQueue.filter(event => event.time <= this.spawnTimer);
+    
+    readySpawns.forEach(event => {
+      this.executeSpawnEvent(event);
+      const index = this.spawnQueue.indexOf(event);
+      this.spawnQueue.splice(index, 1);
+    });
+  }
+
+  /**
+   * Executes a spawn event
+   */
+  private executeSpawnEvent(event: SpawnEvent): void {
+    const entryPoint = this.getEntryPoint(event.entryPoint);
+    const exitPoint = this.getExitPoint(entryPoint);
+    
+    for (let i = 0; i < event.count; i++) {
+      const dna = this.generateFishDNA(event.species, event.category);
+      
+      // Add formation offset for grouped spawns
+      const spawnOffset = event.formation ? 
+        new PIXI.Point(i * 30, Math.sin(i) * 20) : 
+        new PIXI.Point(0, 0);
+      
+      const adjustedEntry = new PIXI.Point(
+        entryPoint.x + spawnOffset.x,
+        entryPoint.y + spawnOffset.y
+      );
+      
+      this.spawnFish(dna, adjustedEntry, exitPoint, event.behavior);
+    }
+  }
+
+  /**
+   * Spawns a single fish
+   */
+  private spawnFish(dna: FishDNA, entryPoint: PIXI.Point, exitPoint: PIXI.Point, behavior: Partial<FishBehavior>): void {
+    const fish = new ArtisticFishPixi(dna, this.app);
+    const fishId = `fish_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create the complete behavior
+    const completeBehavior: FishBehavior = {
+      speed: behavior.speed || 1.0,
+      pathType: behavior.pathType || PathType.LINEAR,
+      swimStyle: behavior.swimStyle || SwimStyle.STRAIGHT,
+      waveAmplitude: behavior.waveAmplitude || 10,
+      waveFrequency: behavior.waveFrequency || 0.002,
+      layerDepth: behavior.layerDepth || 2,
+      animationSpeed: behavior.animationSpeed || 1.0
+    };
+    
+    // Create the active fish entry
+    const activeFish: ActiveFish = {
+      id: fishId,
+      fish,
+      category: this.getCategoryFromSpecies(dna.species),
+      behavior: completeBehavior,
+      path: this.generatePath(entryPoint, exitPoint, completeBehavior.pathType),
+      pathProgress: 0,
+      currentPosition: new PIXI.Point(entryPoint.x, entryPoint.y),
+      swimPhase: Math.random() * Math.PI * 2
+    };
+    
+    // Position the fish
+    fish.x = entryPoint.x;
+    fish.y = entryPoint.y;
+    
+    // Add to the appropriate layer
+    const layer = this.layers.get(completeBehavior.layerDepth);
+    if (layer) {
+      layer.addChild(fish);
+    }
+    
+    // Add to active fish map
+    this.activeFish.set(fishId, activeFish);
+    
+    // Handle boss spawning
+    if (this.getCategoryFromSpecies(dna.species) === FishCategory.BOSS) {
+      this.activeBoss = activeFish;
+      this.bossActive = true;
+    }
+  }
+
+  /**
+   * Dynamic spawning based on current state
+   */
+  private dynamicSpawn(): void {
+    if (this.spawnTimer < this.nextSpawnTime) return;
+    
+    const spawnTypes = [
+      { category: FishCategory.SMALL, weight: 0.5 },
+      { category: FishCategory.MEDIUM, weight: 0.3 },
+      { category: FishCategory.LARGE, weight: 0.2 }
+    ];
+    
+    const roll = Math.random();
+    let cumulative = 0;
+    let selectedCategory = FishCategory.SMALL;
+    
+    for (const type of spawnTypes) {
+      cumulative += type.weight;
+      if (roll < cumulative) {
+        selectedCategory = type.category;
+        break;
+      }
+    }
+    
+    const species = this.getRandomSpeciesForCategory(selectedCategory);
+    const count = selectedCategory === FishCategory.SMALL ? 
+      3 + Math.floor(Math.random() * 5) : 
+      1 + Math.floor(Math.random() * 2);
+    
+    this.executeSpawnEvent({
+      time: this.spawnTimer,
+      category: selectedCategory,
+      species,
+      count,
+      behavior: {
+        speed: 0.8 + Math.random() * 0.4,
+        swimStyle: this.getRandomSwimStyle()
+      },
+      entryPoint: 'random'
+    });
+    
+    this.nextSpawnTime = this.spawnTimer + 3000 + Math.random() * 5000;
+  }
+
+  /**
+   * Helper method to determine category from species
+   */
+  private getCategoryFromSpecies(species: string): FishCategory {
+    const categoryMap: Record<string, FishCategory> = {
+      'neonTetra': FishCategory.SMALL,
+      'crystalShark': FishCategory.SMALL,
+      'goldfish': FishCategory.MEDIUM,
+      'voidAngel': FishCategory.LARGE,
+      'cosmicWhale': FishCategory.BOSS,
+      // Add more mappings as needed
+    };
+    
+    return categoryMap[species] || FishCategory.MEDIUM;
+  }
+
+  /**
+   * Gets random species for category
+   */
+  private getRandomSpeciesForCategory(category: FishCategory): string {
+    const speciesByCategory: Record<FishCategory, string[]> = {
+      [FishCategory.SMALL]: ['neonTetra', 'crystalShark', 'quantumMinnow'],
+      [FishCategory.MEDIUM]: ['goldfish', 'electricEel', 'mysticKoi'],
+      [FishCategory.LARGE]: ['voidAngel', 'spectralManta', 'cyberShark'],
+      [FishCategory.BOSS]: ['cosmicWhale', 'nebulaDragon'],
+      [FishCategory.EVENT]: ['festivalFish', 'crystalPhoenix']
+    };
+    
+    const species = speciesByCategory[category];
+    return species[Math.floor(Math.random() * species.length)];
+  }
+
+  /**
+   * Gets random swim style
+   */
+  private getRandomSwimStyle(): SwimStyle {
+    const styles = Object.values(SwimStyle);
+    return styles[Math.floor(Math.random() * styles.length)];
+  }
+
+  /**
+   * Gets entry point based on specification
+   */
+  private getEntryPoint(spec?: 'left' | 'right' | 'top' | 'bottom' | 'random'): PIXI.Point {
+    const margin = this.SPAWN_MARGIN;
+    const bounds = this.bounds.visibleArea;
+    
+    switch (spec || 'random') {
+      case 'left':
+        return new PIXI.Point(-margin, bounds.height * Math.random());
+      case 'right':
+        return new PIXI.Point(bounds.width + margin, bounds.height * Math.random());
+      case 'top':
+        return new PIXI.Point(bounds.width * Math.random(), -margin);
+      case 'bottom':
+        return new PIXI.Point(bounds.width * Math.random(), bounds.height + margin);
+      case 'random':
+      default:
+        const side = Math.floor(Math.random() * 4);
+        switch (side) {
+          case 0: return this.getEntryPoint('left');
+          case 1: return this.getEntryPoint('right');
+          case 2: return this.getEntryPoint('top');
+          case 3: return this.getEntryPoint('bottom');
+          default: return this.getEntryPoint('left');
+        }
+    }
+  }
+
+  /**
+   * Gets exit point based on entry
+   */
+  private getExitPoint(entryPoint: PIXI.Point): PIXI.Point {
+    const bounds = this.bounds.visibleArea;
+    const margin = this.SPAWN_MARGIN;
+    
+    // Determine which side the entry point is on
+    const isLeft = entryPoint.x < 0;
+    const isRight = entryPoint.x > bounds.width;
+    const isTop = entryPoint.y < 0;
+    const isBottom = entryPoint.y > bounds.height;
+    
+    // Exit on opposite side
+    if (isLeft) {
+      return new PIXI.Point(bounds.width + margin, bounds.height * Math.random());
+    } else if (isRight) {
+      return new PIXI.Point(-margin, bounds.height * Math.random());
+    } else if (isTop) {
+      return new PIXI.Point(bounds.width * Math.random(), bounds.height + margin);
+    } else {
+      return new PIXI.Point(bounds.width * Math.random(), -margin);
+    }
+  }
+
+  /**
+   * Generates fish DNA based on species and category
+   */
+  private generateFishDNA(species: string, category: FishCategory): FishDNA {
+    // This should ideally come from a fish template system
+    return {
+      id: `${species}_${Date.now()}`,
+      species,
+      bodyShape: 'streamlined',
+      pattern: 'scales',
+      colors: {
+        primary: '#' + Math.floor(Math.random()*16777215).toString(16),
+        secondary: '#' + Math.floor(Math.random()*16777215).toString(16),
+        accent: '#' + Math.floor(Math.random()*16777215).toString(16)
+      },
+      rarity: category === FishCategory.BOSS ? 'legendary' : 
+              category === FishCategory.LARGE ? 'rare' : 
+              category === FishCategory.MEDIUM ? 'uncommon' : 'common',
+      traits: [],
+      mutations: [],
+      genes: {
+        size: category === FishCategory.BOSS ? 0.9 : 
+              category === FishCategory.LARGE ? 0.7 : 
+              category === FishCategory.MEDIUM ? 0.5 : 0.3,
+        speed: Math.random(),
+        aggression: Math.random(),
+        intelligence: Math.random()
+      }
+    };
+  }
+
+  /**
+   * Initializes spawn queue
+   */
+  private initializeSpawnQueue(): void {
+    this.spawnQueue = [
+      {
+        time: 2000,
+        category: FishCategory.SMALL,
+        species: 'neonTetra',
+        count: 8,
+        formation: FormationType.SNAKE,
+        behavior: { speed: 1.5, swimStyle: SwimStyle.WAVE },
+        entryPoint: 'left'
+      },
+      {
+        time: 5000,
+        category: FishCategory.MEDIUM,
+        species: 'goldfish',
+        count: 5,
+        formation: FormationType.V_FORMATION,
+        behavior: { speed: 1.0, swimStyle: SwimStyle.GLIDE },
+        entryPoint: 'right'
+      },
+      {
+        time: 8000,
+        category: FishCategory.SMALL,
+        species: 'crystalShark',
+        count: 12,
+        formation: FormationType.CIRCLE,
+        behavior: { speed: 1.2, swimStyle: SwimStyle.WAVE },
+        entryPoint: 'top'
+      },
+      {
+        time: 12000,
+        category: FishCategory.LARGE,
+        species: 'voidAngel',
+        count: 3,
+        behavior: { speed: 0.7, swimStyle: SwimStyle.STRAIGHT },
+        entryPoint: 'random'
+      },
+      {
+        time: 20000,
+        category: FishCategory.BOSS,
+        species: 'cosmicWhale',
+        count: 1,
+        behavior: { speed: 0.3, swimStyle: SwimStyle.GLIDE, pathType: PathType.PATROL },
+        entryPoint: 'left'
+      }
+    ];
   }
 
   /**
@@ -729,75 +998,6 @@ private updateSchoolFormations(): void {
   }
 
   /**
-   * Other methods remain the same but with minor optimizations...
-   */
-  
-  // Keeping the rest of the methods structure the same as original
-  // but with optimizations applied where relevant
-  
-  private processSpawnQueue(): void {
-    const readySpawns = this.spawnQueue.filter(event => event.time <= this.spawnTimer);
-    
-    readySpawns.forEach(event => {
-      this.executeSpawnEvent(event);
-      const index = this.spawnQueue.indexOf(event);
-      this.spawnQueue.splice(index, 1);
-    });
-  }
-
-  private initializeSpawnQueue(): void {
-    this.spawnQueue = [
-      {
-        time: 2000,
-        category: FishCategory.SMALL,
-        species: 'neonTetra',
-        count: 8,
-        formation: FormationType.SNAKE,
-        behavior: { speed: 1.5, swimStyle: SwimStyle.WAVE },
-        entryPoint: 'left'
-      },
-      {
-        time: 5000,
-        category: FishCategory.MEDIUM,
-        species: 'goldfish',
-        count: 5,
-        formation: FormationType.V_FORMATION,
-        behavior: { speed: 1.0, swimStyle: SwimStyle.GLIDE },
-        entryPoint: 'right'
-      },
-      {
-        time: 8000,
-        category: FishCategory.SMALL,
-        species: 'crystalShark',
-        count: 12,
-        formation: FormationType.CIRCLE,
-        behavior: { speed: 1.2, swimStyle: SwimStyle.WAVE },
-        entryPoint: 'top'
-      },
-      {
-        time: 12000,
-        category: FishCategory.LARGE,
-        species: 'voidAngel',
-        count: 3,
-        behavior: { speed: 0.7, swimStyle: SwimStyle.STRAIGHT },
-        entryPoint: 'random'
-      },
-      {
-        time: 20000,
-        category: FishCategory.BOSS,
-        species: 'cosmicWhale',
-        count: 1,
-        behavior: { speed: 0.3, swimStyle: SwimStyle.GLIDE, pathType: PathType.PATROL },
-        entryPoint: 'left'
-      }
-    ];
-  }
-
-  // Continue with the rest of the methods...
-  // Due to length constraints, I'm showing the key optimizations
-  // The rest of the methods follow the same pattern of optimization
-
-  /**
    * Applies swimming style modifiers
    */
   private applySwimStyle(
@@ -908,6 +1108,7 @@ private updateSchoolFormations(): void {
     });
     this.activeFish.clear();
     this.formations.clear();
+    this.specialFormations.clear();
     this.bossActive = false;
     this.activeBoss = null;
     
@@ -916,15 +1117,4 @@ private updateSchoolFormations(): void {
       this.pathCache.clear();
     }
   }
-}
-
-// Interfaces remain the same
-interface SpawnEvent {
-  time: number;
-  category: FishCategory;
-  species: string;
-  count: number;
-  formation?: FormationType;
-  behavior: Partial<FishBehavior>;
-  entryPoint?: 'left' | 'right' | 'top' | 'bottom' | 'random';
 }
