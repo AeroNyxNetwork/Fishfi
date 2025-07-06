@@ -389,8 +389,8 @@ class SwimmingFish extends PIXI.Container {
           offset.y = (Math.random() - 0.5) * this.config.waveAmplitude;
         } else {
           // Maintain some of previous offset for smoother transition
-          offset.x = this.lastOffset?.x * 0.9 || 0;
-          offset.y = this.lastOffset?.y * 0.9 || 0;
+          offset.x = (this.lastOffset?.x || 0) * 0.9;
+          offset.y = (this.lastOffset?.y || 0) * 0.9;
         }
         break;
       
