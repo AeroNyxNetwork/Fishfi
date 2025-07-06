@@ -323,7 +323,7 @@ export class NFTGalleryEngine {
     let frameCount = 0;
     let lastTime = performance.now();
     
-    this.app.ticker.add(() => {
+    this.app.ticker.add((t: PIXI.Ticker) => {
       frameCount++;
       const currentTime = performance.now();
       
@@ -723,7 +723,7 @@ export class NFTGalleryEngine {
       const delay = i * 100;
       setTimeout(() => {
         const startTime = Date.now();
-        const ticker = (deltaTime: number) => {
+        const ticker = (t: PIXI.Ticker) => {
           const elapsed = Date.now() - startTime;
           const progress = elapsed / 1000;
           
@@ -774,13 +774,13 @@ export class NFTGalleryEngine {
       this.mainContainer.addChild(particle);
       
       // Animate particle
-      const ticker = (deltaTime: number) => {
-        particle.x += vx * deltaTime * 0.06;
-        particle.y += vy * deltaTime * 0.06;
-        particle.alpha -= 0.02 * deltaTime * 0.06;
+      const ticker = (t: PIXI.Ticker) => {
+        particle.x += vx * t.deltaTime * 0.06;
+        particle.y += vy * t.deltaTime * 0.06;
+        particle.alpha -= 0.02 * t.deltaTime * 0.06;
         particle.scale.x *= 0.98;
         particle.scale.y *= 0.98;
-        particle.rotation += 0.1 * deltaTime * 0.06;
+        particle.rotation += 0.1 * t.deltaTime * 0.06;
         
         if (particle.alpha <= 0) {
           this.mainContainer.removeChild(particle);
@@ -893,7 +893,7 @@ export class NFTGalleryEngine {
     this.backgroundLayer.addChild(particleContainer);
     
     // Animate particles
-    this.app.ticker.add(() => {
+    this.app.ticker.add((t: PIXI.Ticker) => {
       particleContainer.children.forEach((particle: any) => {
         particle.y -= particle.speed;
         particle.x += Math.sin(particle.y * 0.01) * particle.wobble;
