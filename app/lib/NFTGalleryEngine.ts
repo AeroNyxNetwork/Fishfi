@@ -177,7 +177,7 @@ export class NFTGalleryEngine {
   
   // Swimming system
   private swimmingSystem: FishSwimmingSystem | null = null;
-  private isSwimmingMode: boolean = false; // Start with gallery mode
+  private isSwimmingMode: boolean = true; // Start with swimming mode
   
   // UI elements
   private infoPanel!: PIXI.Container;
@@ -246,15 +246,14 @@ export class NFTGalleryEngine {
     // Initialize swimming system
     this.swimmingSystem = new FishSwimmingSystem(this.app, this.aquarium);
     
-    // Start with gallery mode, then user can toggle to swimming
-    this.generateInitialFish();
-    
-    // Show initial UI
+    // Start in swimming mode
     setTimeout(() => {
-      if (this.isSwimmingMode) {
-        this.showSwimmingUI();
+      this.showSwimmingUI();
+      // Don't generate static fish if starting in swimming mode
+      if (!this.isSwimmingMode) {
+        this.generateInitialFish();
       }
-    }, 1000);
+    }, 100);
     
     // Monitor performance
     this.startPerformanceMonitoring();
@@ -805,23 +804,26 @@ export class NFTGalleryEngine {
     
     // Update based on mode
     if (this.isSwimmingMode && this.swimmingSystem) {
-      // Update swimming system
+      // Update swimming system - this handles all fish movement
       this.swimmingSystem.update(deltaTime);
       this.updateSwimmingUI();
-    } else {
-      // Update static fish with swimming behavior
+    } else if (!this.isSwimmingMode) {
+      // Update static fish with simple floating animation
       this.fishes.forEach(fish => {
-        fish.update(deltaTime);
+        if (fish && fish.update) {
+          fish.update(deltaTime);
+        }
         
-        // Wrap around the screen
+        // Simple boundary check for static fish
         const padding = 100;
         const width = this.app.screen.width;
         const height = this.app.screen.height;
         
-        if (fish.x > width + padding) fish.x -= width + padding * 2;
-        if (fish.x < -padding) fish.x += width + padding * 2;
-        if (fish.y > height + padding) fish.y -= height + padding * 2;
-        if (fish.y < -padding) fish.y += height + padding * 2;
+        // Keep fish within bounds
+        if (fish.x < padding) fish.x = padding;
+        if (fish.x > width - padding) fish.x = width - padding;
+        if (fish.y < padding) fish.y = padding;
+        if (fish.y > height - padding) fish.y = height - padding;
       });
     }
   }
@@ -1025,6 +1027,25 @@ export class NFTGalleryEngine {
     );
     this.uiLayer.addChild(perfButton);
     
+    // Debug button to test swimming
+    if (process.env.NODE_ENV !== 'production') {
+      const debugButton = this.createButton(
+        '🐟 Spawn Test Fish',
+        50,
+        260,
+        () => {
+          if (this.isSwimmingMode && this.swimmingSystem) {
+            console.log('Spawning test fish...');
+            const pos = new PIXI.Point(100, this.app.screen.height / 2);
+            this.swimmingSystem.spawnFishAtPosition(pos);
+          } else {
+            console.log('Not in swimming mode!');
+          }
+        }
+      );
+      this.uiLayer.addChild(debugButton);
+    }
+    
     // Info panel
     this.createInfoPanel();
   }
@@ -1142,19 +1163,28 @@ export class NFTGalleryEngine {
    * Selects a fish and shows its info
    */
   private selectFish(fish: ArtisticFishPixi): void {
+    // Check if fish exists and has valid properties
+    if (!fish || !fish.dna) return;
+    
     // Deselect previous
-    if (this.selectedFish) {
+    if (this.selectedFish && this.selectedFish.scale) {
       const prevScaleFactor = 0.3 + (this.selectedFish.dna.genes.size * 0.4);
       this.selectedFish.scale.set(prevScaleFactor);
-      this.selectedFish.setStatic(true);
+      if (this.selectedFish.setStatic) {
+        this.selectedFish.setStatic(true);
+      }
     }
     
     this.selectedFish = fish;
     
     // Scale up selected fish
-    const scaleFactor = 0.3 + (fish.dna.genes.size * 0.4);
-    fish.scale.set(scaleFactor * 1.2);
-    fish.setStatic(false); // Enable animations for selected fish
+    if (fish.scale) {
+      const scaleFactor = 0.3 + (fish.dna.genes.size * 0.4);
+      fish.scale.set(scaleFactor * 1.2);
+      if (fish.setStatic) {
+        fish.setStatic(false); // Enable animations for selected fish
+      }
+    }
     
     this.updateInfoPanel(fish);
   }
@@ -1166,22 +1196,34 @@ export class NFTGalleryEngine {
     this.isSwimmingMode = !this.isSwimmingMode;
     
     if (this.isSwimmingMode) {
+      // Switch to swimming mode
+      console.log('Switching to swimming mode');
+      
       // Clear static fish
       this.fishes.forEach(fish => {
-        this.aquarium.removeChild(fish);
-        fish.destroy();
+        if (fish && fish.parent) {
+          this.aquarium.removeChild(fish);
+        }
+        if (fish && fish.destroy) {
+          fish.destroy();
+        }
       });
       this.fishes = [];
       
-      // Clear geometry cache for memory
-      GeometryCache.clearCache();
+      // Clear selection
+      this.selectedFish = null;
       
       // Hide info panel
       this.infoPanel.visible = false;
       
       // Show swimming UI
       this.showSwimmingUI();
+      
+      // The swimming system will automatically spawn fish
     } else {
+      // Switch to gallery mode
+      console.log('Switching to gallery mode');
+      
       // Clear swimming fish
       if (this.swimmingSystem) {
         this.swimmingSystem.clearAllFish();
@@ -1286,8 +1328,11 @@ export class NFTGalleryEngine {
    * Generates initial fish
    */
   private generateInitialFish(): void {
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => this.generateNewFish(), i * 200);
+    // Only generate static fish if not in swimming mode
+    if (!this.isSwimmingMode) {
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => this.generateNewFish(), i * 200);
+      }
     }
   }
 
