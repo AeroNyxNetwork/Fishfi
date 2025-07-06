@@ -93,6 +93,7 @@ interface FormationConfig {
  * Active fish tracking with enhanced properties
  */
 interface ActiveFish {
+  id: string;  // Add this line
   fish: ArtisticFishPixi;
   category: FishCategory;
   behavior: FishBehavior;
@@ -157,6 +158,61 @@ export class FishSwimmingSystem {
     this.initializeSpawnQueue();
   }
 
+  private getCategoryFromSpecies(species: string): FishCategory {
+    // Define your mapping logic here
+    const categoryMap: Record<string, FishCategory> = {
+      'neonTetra': FishCategory.SMALL,
+      'crystalShark': FishCategory.SMALL,
+      'goldfish': FishCategory.MEDIUM,
+      'voidAngel': FishCategory.LARGE,
+      'cosmicWhale': FishCategory.BOSS,
+      // Add more mappings as needed
+    };
+    
+    return categoryMap[species] || FishCategory.MEDIUM;
+  }
+
+
+  private spawnFish(dna: FishDNA, entryPoint: PIXI.Point, exitPoint: PIXI.Point, behavior: Partial<FishBehavior>): void {
+    const fish = new ArtisticFishPixi(dna, this.app);
+    const fishId = `fish_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create the complete behavior
+    const completeBehavior: FishBehavior = {
+      speed: behavior.speed || 1.0,
+      pathType: behavior.pathType || PathType.LINEAR,
+      swimStyle: behavior.swimStyle || SwimStyle.STRAIGHT,
+      waveAmplitude: behavior.waveAmplitude || 10,
+      waveFrequency: behavior.waveFrequency || 0.002,
+      layerDepth: behavior.layerDepth || 2,
+      animationSpeed: behavior.animationSpeed || 1.0
+    };
+    
+    // Create the active fish entry
+    const activeFish: ActiveFish = {
+      id: fishId,  // Include the id here
+      fish,
+      category: this.getCategoryFromSpecies(dna.species),
+      behavior: completeBehavior,
+      path: this.generatePath(entryPoint, exitPoint, completeBehavior.pathType),
+      pathProgress: 0,
+      currentPosition: new PIXI.Point(entryPoint.x, entryPoint.y),
+      swimPhase: Math.random() * Math.PI * 2
+    };
+    
+    // Position the fish
+    fish.x = entryPoint.x;
+    fish.y = entryPoint.y;
+    
+    // Add to the appropriate layer
+    const layer = this.layers.get(completeBehavior.layerDepth);
+    if (layer) {
+      layer.addChild(fish);
+    }
+    
+    // Add to active fish map using the same id
+    this.activeFish.set(fishId, activeFish);
+  }
 
   private updateSpecialFormations(): void {
     this.specialFormations.forEach((formation, id) => {
@@ -165,7 +221,8 @@ export class FishSwimmingSystem {
       
       // Update fish in this formation
       formation.fish.forEach((activeFish, index) => {
-        if (!this.activeFish.has(activeFish.fish.id)) {
+        // Use the id from the ActiveFish object instead of the fish
+        if (!this.activeFish.has(activeFish.id)) {
           // Fish was removed, clean up
           formation.fish.splice(index, 1);
           return;
