@@ -1030,16 +1030,14 @@ export class NFTGalleryEngine {
     // Debug button to test swimming
     if (process.env.NODE_ENV !== 'production') {
       const debugButton = this.createButton(
-        '🐟 Spawn Test Fish',
+        '🐟 Debug Paths',
         50,
         260,
         () => {
           if (this.isSwimmingMode && this.swimmingSystem) {
-            console.log('Spawning test fish...');
-            const pos = new PIXI.Point(100, this.app.screen.height / 2);
-            this.swimmingSystem.spawnFishAtPosition(pos);
-          } else {
-            console.log('Not in swimming mode!');
+            const currentDebug = (this.swimmingSystem as any).debugMode || false;
+            (this.swimmingSystem as any).setDebugMode(!currentDebug);
+            console.log('Debug mode:', !currentDebug);
           }
         }
       );
