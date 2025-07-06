@@ -368,6 +368,9 @@ export class NFTGalleryEngine {
     }
   }
 
+  /**
+   * Creates ocean background with gradient
+   */
   private async createOceanBackground(): Promise<void> {
     // Create gradient background using Graphics with FillGradient
     const graphics = new PIXI.Graphics();
@@ -387,8 +390,145 @@ export class NFTGalleryEngine {
     // Create water displacement effect
     await this.createWaterEffect();
     
-    // Add ambient particles with ParticleContainer
+    // Add ambient particles
     this.createAmbientParticles();
+  }
+
+  /**
+   * Creates ambient particles using regular Container (not ParticleContainer)
+   * Note: For v8, ParticleContainer requires Particle objects, not Sprites
+   */
+  private createAmbientParticles(): void {
+    // Create a regular container for animated sprites
+    const particleContainer = new PIXI.Container();
+    
+    // Create particle texture
+    const particleGraphics = new PIXI.Graphics();
+    particleGraphics.circle(0, 0, 5);
+    particleGraphics.fill({ color: 0xffffff });
+    
+    const particleTexture = this.app.renderer.generateTexture(particleGraphics);
+    particleGraphics.destroy();
+    
+    const particles: PIXI.Sprite[] = [];
+    
+    for (let i = 0; i < 50; i++) {
+      const particle = new PIXI.Sprite(particleTexture);
+      particle.anchor.set(0.5);
+      particle.position.set(
+        Math.random() * this.app.screen.width,
+        this.app.screen.height + 50
+      );
+      
+      const scale = 0.1 + Math.random() * 0.3;
+      particle.scale.set(scale);
+      particle.alpha = 0.1 + Math.random() * 0.1;
+      
+      (particle as any).speed = 0.2 + Math.random() * 0.5;
+      (particle as any).wobble = Math.random() * 2 - 1;
+      
+      particles.push(particle);
+      particleContainer.addChild(particle);
+    }
+    
+    this.backgroundLayer.addChild(particleContainer);
+    
+    // Animate particles
+    this.app.ticker.add((t: PIXI.Ticker) => {
+      particles.forEach((particle: any) => {
+        particle.y -= particle.speed * t.deltaTime;
+        particle.x += Math.sin(particle.y * 0.01) * particle.wobble;
+        
+        if (particle.y < -50) {
+          particle.y = this.app.screen.height + 50;
+          particle.x = Math.random() * this.app.screen.width;
+        }
+      });
+    });
+  }
+
+  /**
+   * Creates water displacement effect
+   */
+  private async createWaterEffect(): Promise<void> {
+    // Create displacement texture using Canvas API
+    const displacementTexture = this.createNoiseTexture(256);
+    
+    this.displacementSprite = new PIXI.Sprite(displacementTexture);
+    this.displacementSprite.texture.source.wrapMode = 'repeat';
+    this.displacementSprite.scale.set(2);
+    
+    this.displacementFilter = new PIXI.DisplacementFilter({
+      sprite: this.displacementSprite,
+      scale: 20,
+    });
+    
+    this.mainContainer.addChild(this.displacementSprite);
+    this.mainContainer.filters = [this.displacementFilter];
+    
+    // Water overlay for caustics
+    const waterTexture = this.createCausticsTexture(128);
+    
+    this.waterOverlay = new PIXI.TilingSprite({
+      texture: waterTexture,
+      width: this.app.screen.width,
+      height: this.app.screen.height,
+    });
+    this.waterOverlay.alpha = 0.1;
+    this.waterOverlay.blendMode = 'add';
+    
+    this.mainContainer.addChild(this.waterOverlay);
+  }
+
+  /**
+   * Creates a noise texture for displacement
+   */
+  private createNoiseTexture(size: number): PIXI.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Create noise pattern
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const radius = 10 + Math.random() * 20;
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, Math.random() > 0.5 ? 'rgba(255,0,0,0.5)' : 'rgba(0,255,0,0.5)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+    
+    return PIXI.Texture.from(canvas);
+  }
+
+  /**
+   * Creates a caustics texture for water overlay
+   */
+  private createCausticsTexture(size: number): PIXI.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const radius = 10 + Math.random() * 20;
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+    
+    return PIXI.Texture.from(canvas);
   }
 
   /**
@@ -482,7 +622,7 @@ export class NFTGalleryEngine {
       this.infoPanel.removeChildAt(1);
     }
     
-    const template = FISH_TEMPLATES[fish.dna.species] || FISH_TEMPLATES.goldfish;
+    const template = FISH_TEMPLATES[fish.dna.species] || FISH_TEMPLATES.architecturalFlow;
     const rarityConfig = RARITY_CONFIG[fish.dna.rarity];
     
     // Designation (new naming convention)
@@ -834,128 +974,6 @@ export class NFTGalleryEngine {
     // UI Layer (not affected by displacement)
     this.uiLayer = new PIXI.Container();
     this.app.stage.addChild(this.uiLayer);
-  }
-
-  /**
-   * Creates ambient particles using ParticleContainer
-   */
-  private createAmbientParticles(): void {
-    const particleContainer = new PIXI.ParticleContainer(100, {
-      position: true,
-      scale: true,
-      alpha: true
-    });
-    
-    // Create particle texture
-    const particleTexture = GeometryCache.getBakedTexture(
-      this.app.renderer,
-      'ambient-particle',
-      (graphics) => {
-        graphics.circle(0, 0, 5);
-        graphics.fill({ color: 0xffffff });
-      }
-    );
-    
-    for (let i = 0; i < 50; i++) {
-      const particle = new PIXI.Sprite(particleTexture);
-      particle.anchor.set(0.5);
-      particle.position.set(
-        Math.random() * this.app.screen.width,
-        this.app.screen.height + 50
-      );
-      
-      const scale = 0.1 + Math.random() * 0.3;
-      particle.scale.set(scale);
-      particle.alpha = 0.1 + Math.random() * 0.1;
-      
-      (particle as any).speed = 0.2 + Math.random() * 0.5;
-      (particle as any).wobble = Math.random() * 2 - 1;
-      
-      particleContainer.addChild(particle);
-    }
-    
-    this.backgroundLayer.addChild(particleContainer);
-    
-    // Animate particles
-    this.app.ticker.add((t: PIXI.Ticker) => {
-      particleContainer.children.forEach((particle: any) => {
-        particle.y -= particle.speed;
-        particle.x += Math.sin(particle.y * 0.01) * particle.wobble;
-        
-        if (particle.y < -50) {
-          particle.y = this.app.screen.height + 50;
-          particle.x = Math.random() * this.app.screen.width;
-        }
-      });
-    });
-  }
-
-  /**
-   * Creates water displacement effect with optimization
-   */
-  private async createWaterEffect(): Promise<void> {
-    // Create displacement texture with caching
-    const displacementTexture = GeometryCache.getBakedTexture(
-      this.app.renderer,
-      'water-displacement',
-      (graphics) => {
-        const size = 256;
-        graphics.rect(0, 0, size, size);
-        
-        // Create Perlin-noise-like pattern
-        for (let i = 0; i < 50; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size;
-          const radius = 10 + Math.random() * 20;
-          
-          graphics.circle(x, y, radius);
-          graphics.fill({
-            color: Math.random() > 0.5 ? 0xff0000 : 0x00ff00,
-            alpha: 0.5
-          });
-        }
-      }
-    );
-    
-    this.displacementSprite = new PIXI.Sprite(displacementTexture);
-    this.displacementSprite.texture.source.wrapMode = 'repeat';
-    this.displacementSprite.scale.set(2);
-    
-    this.displacementFilter = new PIXI.DisplacementFilter({
-      sprite: this.displacementSprite,
-      scale: 20,
-    });
-    
-    this.mainContainer.addChild(this.displacementSprite);
-    this.mainContainer.filters = [this.displacementFilter];
-    
-    // Water overlay for caustics
-    const waterTexture = GeometryCache.getBakedTexture(
-      this.app.renderer,
-      'water-overlay',
-      (graphics) => {
-        const size = 128;
-        
-        for (let i = 0; i < 20; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size;
-          const radius = 10 + Math.random() * 20;
-          
-          graphics.circle(x, y, radius);
-          graphics.fill({ color: 0xffffff, alpha: 0.1 });
-        }
-      }
-    );
-    
-    this.waterOverlay = new PIXI.TilingSprite({
-      texture: waterTexture,
-      width: this.app.screen.width,
-      height: this.app.screen.height,
-    });
-    this.waterOverlay.alpha = 0.1;
-    this.waterOverlay.blendMode = 'add';
-    
-    this.mainContainer.addChild(this.waterOverlay);
   }
 
   /**
