@@ -157,6 +157,57 @@ export class FishSwimmingSystem {
     this.initializeSpawnQueue();
   }
 
+
+  private updateSpecialFormations(): void {
+    this.specialFormations.forEach((formation, id) => {
+      const elapsed = Date.now() - formation.startTime;
+      const progress = Math.min(elapsed / formation.duration, 1);
+      
+      // Update fish in this formation
+      formation.fish.forEach((fish, index) => {
+        if (!this.activeFish.has(fish.id)) {
+          // Fish was removed, clean up
+          formation.fish.splice(index, 1);
+          return;
+        }
+        
+        // Calculate position based on formation type
+        let targetX = fish.x;
+        let targetY = fish.y;
+        
+        switch (formation.type) {
+          case 'circle':
+            const angle = (index / formation.fish.length) * Math.PI * 2 + elapsed * 0.0005;
+            targetX = formation.centerX + Math.cos(angle) * formation.radius;
+            targetY = formation.centerY + Math.sin(angle) * formation.radius;
+            break;
+            
+          case 'spiral':
+            const spiralAngle = (index / formation.fish.length) * Math.PI * 2 + elapsed * 0.001;
+            const spiralRadius = formation.radius * (1 - progress * 0.5);
+            targetX = formation.centerX + Math.cos(spiralAngle) * spiralRadius;
+            targetY = formation.centerY + Math.sin(spiralAngle) * spiralRadius;
+            break;
+            
+          case 'wave':
+            const waveOffset = index * 0.5;
+            targetX = formation.centerX + (index - formation.fish.length / 2) * 30;
+            targetY = formation.centerY + Math.sin(elapsed * 0.002 + waveOffset) * 50;
+            break;
+        }
+        
+        // Smooth movement towards target
+        fish.data.targetX = targetX;
+        fish.data.targetY = targetY;
+      });
+      
+      // Remove completed formations
+      if (progress >= 1) {
+        this.specialFormations.delete(id);
+      }
+    });
+  }
+
   /**
    * Updates screen boundaries
    */
@@ -181,6 +232,17 @@ export class FishSwimmingSystem {
     };
   }
 
+  private specialFormations: Map<string, {
+    id: string;
+    type: 'circle' | 'spiral' | 'wave';
+    fish: FishEntity[];
+    centerX: number;
+    centerY: number;
+    radius: number;
+    startTime: number;
+    duration: number;
+  }> = new Map();
+
   /**
    * Initializes rendering layers
    */
@@ -193,6 +255,129 @@ export class FishSwimmingSystem {
     }
   }
 
+  private updateSchoolFormations(): void {
+    // Group fish by species for schooling behavior
+    const schools = new Map<string, FishEntity[]>();
+    
+    this.activeFish.forEach(fish => {
+      if (!fish.data.behavior?.isLeader && fish.data.species) {
+        const species = fish.data.species;
+        if (!schools.has(species)) {
+          schools.set(species, []);
+        }
+        schools.get(species)!.push(fish);
+      }
+    });
+    
+    // Update each school
+    schools.forEach((schoolFish, species) => {
+      if (schoolFish.length < 3) return; // Need at least 3 fish for a school
+      
+      // Find the center of the school
+      let centerX = 0;
+      let centerY = 0;
+      schoolFish.forEach(fish => {
+        centerX += fish.x;
+        centerY += fish.y;
+      });
+      centerX /= schoolFish.length;
+      centerY /= schoolFish.length;
+      
+      // Apply cohesion and alignment forces
+      schoolFish.forEach(fish => {
+        // Cohesion - move towards center of school
+        const cohesionForce = 0.001;
+        const dx = centerX - fish.x;
+        const dy = centerY - fish.y;
+        
+        fish.data.velocityX += dx * cohesionForce;
+        fish.data.velocityY += dy * cohesionForce;
+        
+        // Separation - avoid getting too close to neighbors
+        schoolFish.forEach(other => {
+          if (other === fish) return;
+          
+          const distX = fish.x - other.x;
+          const distY = fish.y - other.y;
+          const dist = Math.sqrt(distX * distX + distY * distY);
+          
+          if (dist < 50 && dist > 0) {
+            const separationForce = 0.01 / dist;
+            fish.data.velocityX += distX * separationForce;
+            fish.data.velocityY += distY * separationForce;
+          }
+        });
+      });
+    });
+  }
+
+  
+
+  private updateFormations(): void {
+    // Update boss formation if boss is active
+    if (this.bossActive && this.bossFish) {
+      this.updateBossFormation();
+    }
+    
+    // Update school formations for regular fish
+    this.updateSchoolFormations();
+    
+    // Update any special formations (like during events)
+    if (this.specialFormations.size > 0) {
+      this.updateSpecialFormations();
+    }
+  }
+
+  private updateBossFormation(): void {
+    if (!this.bossFish || !this.bossActive) return;
+    
+    // Get minions that should follow the boss
+    const minions = Array.from(this.activeFish.values()).filter(fish => 
+      fish.data.behavior?.followTarget === this.bossFish?.id
+    );
+    
+    // Update minion positions relative to boss
+    minions.forEach((minion, index) => {
+      const angle = (index / minions.length) * Math.PI * 2;
+      const radius = 150 + Math.sin(Date.now() * 0.001 + index) * 30;
+      
+      const targetX = this.bossFish!.x + Math.cos(angle) * radius;
+      const targetY = this.bossFish!.y + Math.sin(angle) * radius;
+      
+      // Smooth movement towards formation position
+      minion.data.targetX = targetX;
+      minion.data.targetY = targetY;
+    });
+  }
+
+
+
+  public createFormation(type: 'circle' | 'spiral' | 'wave', centerX: number, centerY: number, radius: number = 100): void {
+    const formationId = `formation_${Date.now()}`;
+    
+    // Get nearby fish for the formation
+    const nearbyFish = Array.from(this.activeFish.values()).filter(fish => {
+      const dx = fish.x - centerX;
+      const dy = fish.y - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      return dist < radius * 2 && !fish.data.behavior?.isLeader;
+    }).slice(0, 12); // Limit to 12 fish
+    
+    if (nearbyFish.length < 3) return; // Need at least 3 fish
+    
+    this.specialFormations.set(formationId, {
+      id: formationId,
+      type,
+      fish: nearbyFish,
+      centerX,
+      centerY,
+      radius,
+      startTime: Date.now(),
+      duration: 10000 // 10 seconds
+    });
+  }
+
+  
   /**
    * Main update loop with optimizations
    */
