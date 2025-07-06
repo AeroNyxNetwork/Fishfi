@@ -228,7 +228,7 @@ export class NFTGalleryEngine {
     this.setupContainers();
     
     // Create ocean environment
-    await this.createOceanEnvironment();
+    await this.createOceanBackground();
     
     // Create UI with enhancements
     this.createUI();
