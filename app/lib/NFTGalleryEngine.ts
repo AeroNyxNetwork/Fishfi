@@ -837,45 +837,6 @@ export class NFTGalleryEngine {
   }
 
   /**
-   * Creates ocean environment with optimizations
-   */
-  private async createOceanEnvironment(): Promise<void> {
-    // Create gradient background using cached texture
-    const gradientKey = 'ocean-gradient';
-    const gradientTexture = GeometryCache.getBakedTexture(
-      this.app.renderer,
-      gradientKey,
-      (graphics) => {
-        const height = this.app.screen.height;
-        graphics.rect(0, 0, 1, height);
-        
-        // Create gradient fill
-        const gradient = graphics.context.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, '#000814');
-        gradient.addColorStop(0.5, '#001a33');
-        gradient.addColorStop(1, '#003366');
-        
-        graphics.context.fillStyle = gradient;
-        graphics.fill();
-      }
-    );
-    
-    const gradientSprite = new PIXI.TilingSprite({
-      texture: gradientTexture,
-      width: this.app.screen.width,
-      height: this.app.screen.height
-    });
-    
-    this.backgroundLayer.addChild(gradientSprite);
-    
-    // Create water displacement effect
-    await this.createWaterEffect();
-    
-    // Add ambient particles with ParticleContainer
-    this.createAmbientParticles();
-  }
-
-  /**
    * Creates ambient particles using ParticleContainer
    */
   private createAmbientParticles(): void {
