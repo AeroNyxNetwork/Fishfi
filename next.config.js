@@ -22,3 +22,5 @@ const nextConfig = {
     domains: [],
   },
 }
+
+module.exports = nextConfig
