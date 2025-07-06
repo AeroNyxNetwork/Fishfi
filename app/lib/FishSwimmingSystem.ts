@@ -644,7 +644,7 @@ export class FishSwimmingSystem {
   private screenBounds: PIXI.Rectangle;
   private spawnTimer: number = 0;
   private bossSpawnTimer: number = 0;
-  private isBossActive: boolean = false;
+  private bossActive: boolean = false;
   
   // Configuration
   private spawnInterval: number = 2000; // ms between spawns
@@ -678,7 +678,7 @@ export class FishSwimmingSystem {
     }
     
     // Spawn boss fish
-    if (this.bossSpawnTimer >= this.bossSpawnInterval && !this.isBossActive) {
+    if (this.bossSpawnTimer >= this.bossSpawnInterval && !this.bossActive) {
       this.bossSpawnTimer = 0;
       this.spawnBossFish();
     }
@@ -695,7 +695,7 @@ export class FishSwimmingSystem {
         this.fishes.splice(i, 1);
         
         if (fish.config.isBoss) {
-          this.isBossActive = false;
+          this.bossActive = false;
         }
       }
     }
@@ -764,7 +764,7 @@ export class FishSwimmingSystem {
    * Spawns a boss fish with special entrance
    */
   private spawnBossFish(): void {
-    this.isBossActive = true;
+    this.bossActive = true;
     
     // Screen shake effect
     this.createScreenShake();
@@ -1098,7 +1098,7 @@ export class FishSwimmingSystem {
   }
   
   public isBossActive(): boolean {
-    return this.isBossActive;
+    return this.bossActive;
   }
   
   public spawnFishAtPosition(position: PIXI.Point, config?: Partial<FishConfig>): SwimmingFish {
