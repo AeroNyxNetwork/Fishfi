@@ -661,6 +661,21 @@ export class FishSwimmingSystem {
     
     // Enable sorting for layer depth
     this.container.sortableChildren = true;
+    
+    // Start spawning fish immediately
+    this.spawnInitialFish();
+  }
+  
+  /**
+   * Spawns initial fish when system starts
+   */
+  private spawnInitialFish(): void {
+    // Spawn a few fish immediately
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        this.spawnRandomFish();
+      }, i * 500);
+    }
   }
   
   /**
