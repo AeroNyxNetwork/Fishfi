@@ -177,7 +177,7 @@ export class NFTGalleryEngine {
   
   // Swimming system
   private swimmingSystem: FishSwimmingSystem | null = null;
-  private isSwimmingMode: boolean = true;
+  private isSwimmingMode: boolean = false; // Start with gallery mode
   
   // UI elements
   private infoPanel!: PIXI.Container;
@@ -246,9 +246,14 @@ export class NFTGalleryEngine {
     // Initialize swimming system
     this.swimmingSystem = new FishSwimmingSystem(this.app, this.aquarium);
     
-    // Start with swimming mode
+    // Start with gallery mode, then user can toggle to swimming
+    this.generateInitialFish();
+    
+    // Show initial UI
     setTimeout(() => {
-      this.showSwimmingUI();
+      if (this.isSwimmingMode) {
+        this.showSwimmingUI();
+      }
     }, 1000);
     
     // Monitor performance
