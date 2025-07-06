@@ -101,7 +101,6 @@ export class ArtisticFishPixi extends PIXI.Container {
   private glowContainer?: PIXI.Container;
   private particleContainer?: PIXI.ParticleContainer; // Changed to ParticleContainer
   
-  // Enhanced visual effects
   private shaderTime: number = 0;
   private colorMatrixFilter?: PIXI.ColorMatrixFilter;
   private displacementFilter?: PIXI.DisplacementFilter;
@@ -120,6 +119,9 @@ export class ArtisticFishPixi extends PIXI.Container {
   
   // Reference to app for renderer access
   private app: PIXI.Application;
+  
+  // Store particles separately for v8 ParticleContainer
+  private particles: PIXI.Particle[] = [];
   
   constructor(dna: FishDNA, app: PIXI.Application) {
     super();
