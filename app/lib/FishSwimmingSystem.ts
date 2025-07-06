@@ -355,8 +355,9 @@ export class FishSwimmingSystem {
           
           if (dist < 50 && dist > 0) {
             const separationForce = 0.01 / dist;
-            activeFish.formationOffset.x += distX * separationForce;
-            activeFish.formationOffset.y += distY * separationForce;
+            // formationOffset is guaranteed to exist from the code above
+            activeFish.formationOffset!.x += distX * separationForce;
+            activeFish.formationOffset!.y += distY * separationForce;
           }
         });
       });
@@ -371,15 +372,20 @@ export class FishSwimmingSystem {
       const elapsed = Date.now() - formation.startTime;
       const progress = Math.min(elapsed / formation.duration, 1);
       
-      // Update fish in this formation
+      // Clean up removed fish first
+      formation.fish = formation.fish.filter(activeFish => 
+        this.activeFish.has(activeFish.id)
+      );
+      
+      // Update remaining fish in this formation
+      const fishCount = formation.fish.length;
+      if (fishCount === 0) {
+        // No fish left, remove formation
+        this.specialFormations.delete(id);
+        return;
+      }
+      
       formation.fish.forEach((activeFish, index) => {
-        // Use the id from the ActiveFish object instead of the fish
-        if (!this.activeFish.has(activeFish.id)) {
-          // Fish was removed, clean up
-          formation.fish.splice(index, 1);
-          return;
-        }
-        
         const fish = activeFish.fish;
         
         // Calculate position based on formation type
@@ -388,13 +394,13 @@ export class FishSwimmingSystem {
         
         switch (formation.type) {
           case 'circle':
-            const angle = (index / formation.fish.length) * Math.PI * 2 + elapsed * 0.0005;
+            const angle = (index / fishCount) * Math.PI * 2 + elapsed * 0.0005;
             targetX = formation.centerX + Math.cos(angle) * formation.radius;
             targetY = formation.centerY + Math.sin(angle) * formation.radius;
             break;
             
           case 'spiral':
-            const spiralAngle = (index / formation.fish.length) * Math.PI * 2 + elapsed * 0.001;
+            const spiralAngle = (index / fishCount) * Math.PI * 2 + elapsed * 0.001;
             const spiralRadius = formation.radius * (1 - progress * 0.5);
             targetX = formation.centerX + Math.cos(spiralAngle) * spiralRadius;
             targetY = formation.centerY + Math.sin(spiralAngle) * spiralRadius;
@@ -402,7 +408,7 @@ export class FishSwimmingSystem {
             
           case 'wave':
             const waveOffset = index * 0.5;
-            targetX = formation.centerX + (index - formation.fish.length / 2) * 30;
+            targetX = formation.centerX + (index - fishCount / 2) * 30;
             targetY = formation.centerY + Math.sin(elapsed * 0.002 + waveOffset) * 50;
             break;
         }
@@ -483,10 +489,16 @@ export class FishSwimmingSystem {
       activeFish.swimPhase += behavior.waveFrequency * deltaTime;
       
       // Formation handling
-      if (activeFish.formation && activeFish.formationOffset && !activeFish.isLeader) {
-        const leader = activeFish.formation.leader!;
-        basePosition.x = leader.currentPosition.x + activeFish.formationOffset.x;
-        basePosition.y = leader.currentPosition.y + activeFish.formationOffset.y;
+      if (activeFish.formationOffset) {
+        if (activeFish.formation && activeFish.formation.leader && !activeFish.isLeader) {
+          const leader = activeFish.formation.leader;
+          basePosition.x = leader.currentPosition.x + activeFish.formationOffset.x;
+          basePosition.y = leader.currentPosition.y + activeFish.formationOffset.y;
+        } else {
+          // Apply formation offset if it exists but no specific formation
+          basePosition.x += activeFish.formationOffset.x;
+          basePosition.y += activeFish.formationOffset.y;
+        }
       }
       
       // Update position
@@ -948,7 +960,10 @@ export class FishSwimmingSystem {
         );
       }
       
-      return path.pathPoints[path.pathPoints.length - 1];
+      return new PIXI.Point(
+        path.pathPoints[path.pathPoints.length - 1].x,
+        path.pathPoints[path.pathPoints.length - 1].y
+      );
     }
     
     // Fallback to real-time calculation
@@ -959,14 +974,22 @@ export class FishSwimmingSystem {
    * Fallback real-time path calculation
    */
   private calculatePositionAlongPath(path: PathDefinition, t: number): PIXI.Point {
+    // Ensure we have control points
+    if (!path.controlPoints || path.controlPoints.length === 0) {
+      return new PIXI.Point(0, 0);
+    }
+    
     switch (path.type) {
       case PathType.LINEAR:
-        const start = path.controlPoints[0];
-        const end = path.controlPoints[1];
-        return new PIXI.Point(
-          start.x + (end.x - start.x) * t,
-          start.y + (end.y - start.y) * t
-        );
+        if (path.controlPoints.length >= 2) {
+          const start = path.controlPoints[0];
+          const end = path.controlPoints[1];
+          return new PIXI.Point(
+            start.x + (end.x - start.x) * t,
+            start.y + (end.y - start.y) * t
+          );
+        }
+        break;
         
       case PathType.BEZIER_CURVE:
         if (path.controlPoints.length === 3) {
@@ -982,7 +1005,9 @@ export class FishSwimmingSystem {
         break;
     }
     
-    return path.controlPoints[path.controlPoints.length - 1];
+    // Return the last control point as fallback
+    const lastPoint = path.controlPoints[path.controlPoints.length - 1];
+    return new PIXI.Point(lastPoint.x, lastPoint.y);
   }
 
   /**
