@@ -994,7 +994,8 @@ export class NFTGalleryEngine {
     );
     this.uiLayer.addChild(this.generateButton);
     
-    // Gallery button
+    // Gallery button (commented out to disable gallery)
+    /*
     this.galleryButton = this.createButton(
       '🖼️ Collection Archive',
       50,
@@ -1002,12 +1003,13 @@ export class NFTGalleryEngine {
       () => this.toggleGallery()
     );
     this.uiLayer.addChild(this.galleryButton);
+    */
     
-    // Spawner mode button
+    // Spawner mode button (moved up since gallery is disabled)
     const swimmingButton = this.createButton(
       '🌊 Toggle Ecosystem',
       50,
-      190,
+      120, // Was 190
       () => this.toggleSwimmingMode()
     );
     this.uiLayer.addChild(swimmingButton);
@@ -1016,7 +1018,7 @@ export class NFTGalleryEngine {
     const perfButton = this.createButton(
       '📊 Performance Stats',
       50,
-      260,
+      190, // Was 260
       () => {
         this.statsPanel.visible = !this.statsPanel.visible;
       }
@@ -1379,44 +1381,99 @@ export class NFTGalleryEngine {
    * Shows gallery view
    */
   private showGallery(): void {
-    // Implementation remains similar but with enhanced UI
+    // Hide the aquarium instead of making gallery overlay
     this.aquarium.visible = false;
     
     const galleryContainer = new PIXI.Container();
     galleryContainer.name = 'gallery';
     
-    // Background
+    // Create a smaller gallery panel instead of full screen
+    const panelWidth = Math.min(800, this.app.screen.width - 100);
+    const panelHeight = Math.min(600, this.app.screen.height - 100);
+    const panelX = (this.app.screen.width - panelWidth) / 2;
+    const panelY = (this.app.screen.height - panelHeight) / 2;
+    
+    // Background panel
     const bg = new PIXI.Graphics();
-    bg.rect(0, 0, this.app.screen.width, this.app.screen.height);
-    bg.fill({ color: 0x000000, alpha: 0.9 });
+    bg.roundRect(panelX, panelY, panelWidth, panelHeight, 20);
+    bg.fill({ color: 0x1a1a1a, alpha: 0.95 });
+    bg.stroke({ color: 0x00ccff, width: 3 });
     galleryContainer.addChild(bg);
+    
+    // Close button
+    const closeButton = new PIXI.Container();
+    const closeBg = new PIXI.Graphics();
+    closeBg.circle(0, 0, 20);
+    closeBg.fill({ color: 0xff0000 });
+    closeBg.stroke({ color: 0xffffff, width: 2 });
+    
+    const closeText = new PIXI.Text({
+      text: '✕',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 24,
+        fontWeight: 'bold',
+        fill: 0xffffff
+      }
+    });
+    closeText.anchor.set(0.5);
+    
+    closeButton.addChild(closeBg);
+    closeButton.addChild(closeText);
+    closeButton.position.set(panelX + panelWidth - 30, panelY + 30);
+    closeButton.eventMode = 'static';
+    closeButton.cursor = 'pointer';
+    
+    closeButton.on('pointerdown', () => {
+      this.hideGallery();
+    });
+    
+    closeButton.on('pointerover', () => {
+      closeBg.tint = 0xcccccc;
+    });
+    
+    closeButton.on('pointerout', () => {
+      closeBg.tint = 0xffffff;
+    });
+    
+    galleryContainer.addChild(closeButton);
     
     // Title
     const title = new PIXI.Text({
       text: 'Digital Artefact Archive',
       style: {
         fontFamily: 'Arial',
-        fontSize: 48,
+        fontSize: 32,
         fontWeight: 'bold',
         fill: 0xffffff,
         dropShadow: {
-          distance: 4,
+          distance: 2,
           angle: 45,
-          blur: 4,
-          alpha: 0.8
+          blur: 2,
+          alpha: 0.5
         }
       }
     });
     title.anchor.set(0.5, 0);
-    title.position.set(this.app.screen.width / 2, 50);
+    title.position.set(this.app.screen.width / 2, panelY + 20);
     galleryContainer.addChild(title);
     
+    // Create scrollable area for fish grid
+    const scrollContainer = new PIXI.Container();
+    scrollContainer.position.set(panelX + 20, panelY + 80);
+    
+    // Add mask for scrolling
+    const mask = new PIXI.Graphics();
+    mask.rect(0, 0, panelWidth - 40, panelHeight - 120);
+    mask.fill({ color: 0xffffff });
+    mask.position.set(panelX + 20, panelY + 80);
+    scrollContainer.mask = mask;
+    galleryContainer.addChild(mask);
+    
     // Create grid of fish
-    const gridCols = 6;
-    const cellSize = 150;
-    const padding = 20;
-    const startX = (this.app.screen.width - (gridCols * (cellSize + padding))) / 2;
-    const startY = 150;
+    const gridCols = 4;
+    const cellSize = 120;
+    const padding = 15;
     
     this.gallery.forEach((fishDNA, index) => {
       const col = index % gridCols;
@@ -1424,13 +1481,14 @@ export class NFTGalleryEngine {
       
       const cell = this.createGalleryCell(fishDNA);
       cell.position.set(
-        startX + col * (cellSize + padding),
-        startY + row * (cellSize + padding)
+        col * (cellSize + padding),
+        row * (cellSize + padding)
       );
       
-      galleryContainer.addChild(cell);
+      scrollContainer.addChild(cell);
     });
     
+    galleryContainer.addChild(scrollContainer);
     this.uiLayer.addChild(galleryContainer);
   }
 
@@ -1441,9 +1499,13 @@ export class NFTGalleryEngine {
     const cell = new PIXI.Container();
     const rarityConfig = RARITY_CONFIG[fishDNA.rarity];
     
+    // Smaller cell size
+    const cellWidth = 110;
+    const cellHeight = 110;
+    
     // Background
     const bg = new PIXI.Graphics();
-    bg.roundRect(0, 0, 140, 140, 10);
+    bg.roundRect(0, 0, cellWidth, cellHeight, 8);
     bg.fill({ color: 0x1a1a1a });
     bg.stroke({ 
       color: rarityConfig.color,
@@ -1453,9 +1515,9 @@ export class NFTGalleryEngine {
     
     // Create mini fish preview
     const fishPreview = new ArtisticFishPixi(fishDNA, this.app);
-    fishPreview.position.set(70, 60);
+    fishPreview.position.set(cellWidth / 2, cellHeight / 2 - 10);
     fishPreview.setStatic(true); // Optimize for gallery
-    const previewScale = 0.15 + (fishDNA.genes.size * 0.1);
+    const previewScale = 0.12 + (fishDNA.genes.size * 0.08);
     fishPreview.scale.set(previewScale);
     
     cell.addChild(bg);
@@ -1466,13 +1528,13 @@ export class NFTGalleryEngine {
       text: `${rarityConfig.designation}-${fishDNA.id.substr(-3)}`,
       style: {
         fontFamily: 'monospace',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
         fill: rarityConfig.color
       }
     });
     designationLabel.anchor.set(0.5);
-    designationLabel.position.set(70, 120);
+    designationLabel.position.set(cellWidth / 2, cellHeight - 15);
     cell.addChild(designationLabel);
     
     // Make interactive
@@ -1481,7 +1543,7 @@ export class NFTGalleryEngine {
     
     cell.on('pointerover', () => {
       bg.tint = 0xcccccc;
-      cell.scale.set(1.1);
+      cell.scale.set(1.05);
     });
     
     cell.on('pointerout', () => {
