@@ -186,13 +186,14 @@ class SwimmingFish extends PIXI.Container {
   }
   
   /**
-   * Updates fish position along path
+   * Updates fish position along path with smooth interpolation
    */
   public updatePosition(deltaTime: number): void {
     if (!this.isActive) return;
     
-    // Update path progress
-    const pathSpeed = this.config.speed / 1000; // Convert to units per ms
+    // Update path progress based on speed and deltaTime
+    const speedMultiplier = 0.001; // Adjust for proper speed scaling
+    const pathSpeed = this.config.speed * speedMultiplier;
     this.pathProgress += pathSpeed * deltaTime;
     
     // Get position from path
@@ -203,15 +204,25 @@ class SwimmingFish extends PIXI.Container {
       return;
     }
     
-    // Apply swimming style modifications
-    const swimOffset = this.applySwimStyle(this.pathProgress);
+    // Store previous position for rotation calculation
+    const prevX = this.position.x;
+    const prevY = this.position.y;
     
-    // Set final position
-    this.position.x = pathPosition.x + swimOffset.x;
-    this.position.y = pathPosition.y + swimOffset.y;
+    // Apply swimming style modifications
+    const swimOffset = this.applySwimStyle(this.pathProgress * 10); // Multiply for more visible effect
+    
+    // Set base position from path
+    this.basePosition.x = pathPosition.x;
+    this.basePosition.y = pathPosition.y;
+    
+    // Apply final position with swim offset
+    this.position.x = this.basePosition.x + swimOffset.x;
+    this.position.y = this.basePosition.y + swimOffset.y;
     
     // Update rotation to face movement direction
-    this.updateRotation(pathPosition);
+    if (Math.abs(this.position.x - prevX) > 0.1 || Math.abs(this.position.y - prevY) > 0.1) {
+      this.updateRotation(prevX, prevY);
+    }
     
     // Update effects
     if (this.bubbleEmitter) {
@@ -221,6 +232,7 @@ class SwimmingFish extends PIXI.Container {
     // Pulse glow for boss fish
     if (this.glowEffect && this.config.isBoss) {
       this.glowEffect.alpha = 0.3 + Math.sin(Date.now() * 0.002) * 0.1;
+      this.glowEffect.scale.set(1 + Math.sin(Date.now() * 0.001) * 0.1);
     }
   }
   
@@ -356,44 +368,74 @@ class SwimmingFish extends PIXI.Container {
   }
   
   /**
-   * Applies swimming style modifications
+   * Applies swimming style modifications for natural movement
    */
   private applySwimStyle(progress: number): PIXI.Point {
     const offset = new PIXI.Point(0, 0);
     
     switch (this.config.swimStyle) {
       case SwimStyle.WAVY:
-        this.waveOffset += this.config.waveFrequency;
+        // Smooth sine wave movement
+        this.waveOffset = progress * this.config.waveFrequency;
         offset.y = Math.sin(this.waveOffset) * this.config.waveAmplitude;
+        // Add slight horizontal movement for more natural feel
+        offset.x = Math.cos(this.waveOffset * 0.5) * this.config.waveAmplitude * 0.3;
         break;
       
       case SwimStyle.ERRATIC:
+        // Random jerky movements
         if (Math.random() < 0.02) {
           offset.x = (Math.random() - 0.5) * this.config.waveAmplitude;
           offset.y = (Math.random() - 0.5) * this.config.waveAmplitude;
+        } else {
+          // Maintain some of previous offset for smoother transition
+          offset.x = this.lastOffset?.x * 0.9 || 0;
+          offset.y = this.lastOffset?.y * 0.9 || 0;
         }
         break;
       
       case SwimStyle.GLIDING:
-        // Smooth sine wave
-        offset.y = Math.sin(progress * Math.PI * 4) * this.config.waveAmplitude * 0.5;
+        // Smooth gliding motion with gentle waves
+        offset.y = Math.sin(progress * 0.5) * this.config.waveAmplitude * 0.5;
+        offset.x = Math.sin(progress * 0.3) * this.config.waveAmplitude * 0.2;
+        break;
+      
+      case SwimStyle.STRAIGHT:
+        // No additional movement
         break;
     }
+    
+    // Store last offset for smooth transitions
+    this.lastOffset = offset;
     
     return offset;
   }
   
+  private lastOffset?: PIXI.Point;
+  
   /**
    * Updates sprite rotation to face movement direction
    */
-  private updateRotation(targetPosition: PIXI.Point): void {
-    const dx = targetPosition.x - this.position.x;
-    const dy = targetPosition.y - this.position.y;
+  private updateRotation(prevX: number, prevY: number): void {
+    const dx = this.position.x - prevX;
+    const dy = this.position.y - prevY;
     
     if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-      this.sprite.rotation = Math.atan2(dy, dx);
+      // Calculate angle
+      const targetRotation = Math.atan2(dy, dx);
       
-      // Flip sprite if moving left
+      // Smooth rotation interpolation
+      const rotationSpeed = 0.1;
+      const diff = targetRotation - this.sprite.rotation;
+      
+      // Normalize angle difference
+      let normalizedDiff = diff;
+      while (normalizedDiff > Math.PI) normalizedDiff -= Math.PI * 2;
+      while (normalizedDiff < -Math.PI) normalizedDiff += Math.PI * 2;
+      
+      this.sprite.rotation += normalizedDiff * rotationSpeed;
+      
+      // Flip sprite vertically if moving left
       if (dx < 0) {
         this.sprite.scale.y = -Math.abs(this.sprite.scale.y);
       } else {
@@ -649,6 +691,8 @@ export class FishSwimmingSystem {
   // Configuration
   private spawnInterval: number = 2000; // ms between spawns
   private bossSpawnInterval: number = 30000; // ms between boss spawns
+  private debugMode: boolean = false; // Visual debug mode
+  private pathDebugContainer: PIXI.Container;
   
   constructor(app: PIXI.Application, container: PIXI.Container) {
     this.app = app;
@@ -662,6 +706,10 @@ export class FishSwimmingSystem {
     // Enable sorting for layer depth
     this.container.sortableChildren = true;
     
+    // Create debug container
+    this.pathDebugContainer = new PIXI.Container();
+    this.container.addChild(this.pathDebugContainer);
+    
     // Start spawning fish immediately
     this.spawnInitialFish();
   }
@@ -670,12 +718,18 @@ export class FishSwimmingSystem {
    * Spawns initial fish when system starts
    */
   private spawnInitialFish(): void {
-    // Spawn a few fish immediately
-    for (let i = 0; i < 3; i++) {
-      setTimeout(() => {
-        this.spawnRandomFish();
-      }, i * 500);
-    }
+    console.log('FishSwimmingSystem: Spawning initial fish...');
+    
+    // Spawn a few fish immediately with variety
+    this.spawnSingleFish(); // Single fish
+    
+    setTimeout(() => {
+      this.spawnFormation(); // Formation
+    }, 1000);
+    
+    setTimeout(() => {
+      this.spawnSingleFish(); // Another single
+    }, 2000);
   }
   
   /**
@@ -704,13 +758,16 @@ export class FishSwimmingSystem {
       fish.updatePosition(deltaTime);
       
       // Remove fish that are outside screen and inactive
-      if (!fish.isActive && fish.isOutsideScreen(this.screenBounds)) {
-        this.container.removeChild(fish);
-        fish.destroy();
-        this.fishes.splice(i, 1);
-        
-        if (fish.config.isBoss) {
-          this.bossActive = false;
+      if (!fish.isActive || fish.isOutsideScreen(this.screenBounds)) {
+        // Only remove if fish has had time to swim through
+        if (!fish.isActive && fish.pathProgress > 0.1) {
+          this.container.removeChild(fish);
+          fish.destroy();
+          this.fishes.splice(i, 1);
+          
+          if (fish.config.isBoss) {
+            this.bossActive = false;
+          }
         }
       }
     }
@@ -741,11 +798,13 @@ export class FishSwimmingSystem {
   }
   
   /**
-   * Spawns a single fish
+   * Spawns a single fish with path visualization
    */
   private spawnSingleFish(): void {
     const config = this.generateRandomFishConfig();
     const path = this.generateRandomPath();
+    
+    console.log(`Spawning ${config.species} fish with ${path.type} path`);
     
     const fish = new SwimmingFish(config, path, this.app.renderer);
     
@@ -755,6 +814,90 @@ export class FishSwimmingSystem {
     
     this.container.addChild(fish);
     this.fishes.push(fish);
+    
+    // Debug: Visualize path
+    if (this.debugMode) {
+      this.visualizePath(path);
+    }
+  }
+  
+  /**
+   * Visualizes a path for debugging
+   */
+  private visualizePath(path: PathConfig): void {
+    const graphics = new PIXI.Graphics();
+    graphics.alpha = 0.3;
+    
+    switch (path.type) {
+      case PathType.LINEAR:
+        graphics.moveTo(path.points[0].x, path.points[0].y);
+        graphics.lineTo(path.points[1].x, path.points[1].y);
+        graphics.stroke({ color: 0x00ff00, width: 2 });
+        break;
+        
+      case PathType.BEZIER:
+        if (path.controlPoints && path.controlPoints.length >= 2) {
+          // Draw bezier curve
+          const steps = 50;
+          for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const pos = this.calculateBezierPoint(t, path.points[0], path.controlPoints[0], path.controlPoints[1], path.points[1]);
+            if (i === 0) {
+              graphics.moveTo(pos.x, pos.y);
+            } else {
+              graphics.lineTo(pos.x, pos.y);
+            }
+          }
+          graphics.stroke({ color: 0x0099ff, width: 2 });
+          
+          // Draw control points
+          graphics.circle(path.controlPoints[0].x, path.controlPoints[0].y, 5);
+          graphics.fill({ color: 0xff0000 });
+          graphics.circle(path.controlPoints[1].x, path.controlPoints[1].y, 5);
+          graphics.fill({ color: 0xff0000 });
+        }
+        break;
+    }
+    
+    // Draw start and end points
+    graphics.circle(path.points[0].x, path.points[0].y, 8);
+    graphics.fill({ color: 0x00ff00 });
+    graphics.circle(path.points[1].x, path.points[1].y, 8);
+    graphics.fill({ color: 0xff0000 });
+    
+    this.pathDebugContainer.addChild(graphics);
+    
+    // Remove after 10 seconds
+    setTimeout(() => {
+      this.pathDebugContainer.removeChild(graphics);
+      graphics.destroy();
+    }, 10000);
+  }
+  
+  /**
+   * Calculates a point on a bezier curve
+   */
+  private calculateBezierPoint(t: number, p0: PIXI.Point, p1: PIXI.Point, p2: PIXI.Point, p3: PIXI.Point): PIXI.Point {
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const mt3 = mt2 * mt;
+    
+    return new PIXI.Point(
+      mt3 * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
+      mt3 * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y
+    );
+  }
+  
+  /**
+   * Enables debug mode
+   */
+  public setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
+    if (!enabled) {
+      this.pathDebugContainer.removeChildren();
+    }
   }
   
   /**
@@ -926,38 +1069,50 @@ export class FishSwimmingSystem {
   }
   
   /**
-   * Generates random path configuration
+   * Generates random path configuration with improved curves
    */
   private generateRandomPath(): PathConfig {
     const pathType = this.getRandomPathType();
-    const margin = 100;
     
     switch (pathType) {
       case PathType.LINEAR:
+        // Simple straight line across screen
+        const startSide = Math.random() < 0.5 ? 'left' : 'right';
+        const startY = 100 + Math.random() * (this.app.screen.height - 200);
+        const endY = 100 + Math.random() * (this.app.screen.height - 200);
+        
         return {
           type: PathType.LINEAR,
           points: [
-            this.getRandomEdgePoint(true),
-            this.getRandomEdgePoint(false)
+            new PIXI.Point(startSide === 'left' ? -150 : this.app.screen.width + 150, startY),
+            new PIXI.Point(startSide === 'left' ? this.app.screen.width + 150 : -150, endY)
           ]
         };
       
       case PathType.BEZIER:
+        // Curved path with control points for smooth swimming
         const start = this.getRandomEdgePoint(true);
         const end = this.getRandomEdgePoint(false);
+        
+        // Generate control points that create natural curves
+        const midX = this.app.screen.width / 2;
+        const midY = this.app.screen.height / 2;
+        
+        // Control points offset from center for S-curves
+        const cp1 = new PIXI.Point(
+          midX + (Math.random() - 0.5) * this.app.screen.width * 0.6,
+          midY + (Math.random() - 0.5) * this.app.screen.height * 0.6
+        );
+        
+        const cp2 = new PIXI.Point(
+          midX + (Math.random() - 0.5) * this.app.screen.width * 0.6,
+          midY + (Math.random() - 0.5) * this.app.screen.height * 0.6
+        );
+        
         return {
           type: PathType.BEZIER,
           points: [start, end],
-          controlPoints: [
-            new PIXI.Point(
-              this.app.screen.width * Math.random(),
-              this.app.screen.height * Math.random()
-            ),
-            new PIXI.Point(
-              this.app.screen.width * Math.random(),
-              this.app.screen.height * Math.random()
-            )
-          ]
+          controlPoints: [cp1, cp2]
         };
       
       default:
@@ -975,9 +1130,11 @@ export class FishSwimmingSystem {
    * Gets a random point on screen edge
    */
   private getRandomEdgePoint(isStart: boolean): PIXI.Point {
-    const margin = 100;
+    const margin = 150; // Increased margin to ensure fish start fully outside
     const side = Math.floor(Math.random() * 4);
     
+    // For start points, place outside screen
+    // For end points, place on opposite side
     switch (side) {
       case 0: // Top
         return new PIXI.Point(
