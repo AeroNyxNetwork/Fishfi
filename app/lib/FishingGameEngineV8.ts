@@ -93,7 +93,7 @@ export class FishingGameEngineV8 {
   
   private async createOceanBackground(): Promise<void> {
     // Create gradient background
-    const gradientTexture = await this.createGradientTexture(
+    const gradientTexture = this.createGradientTexture(
       [0x000814, 0x001a33, 0x003366],
       this.app.screen.width,
       this.app.screen.height
@@ -106,7 +106,7 @@ export class FishingGameEngineV8 {
     this.createBubbles();
   }
   
-  private createGradientTexture(colors: number[], width: number, height: number): Promise<PIXI.Texture> {
+  private createGradientTexture(colors: number[], width: number, height: number): PIXI.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -124,7 +124,7 @@ export class FishingGameEngineV8 {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     
-    return Promise.resolve(PIXI.Texture.from(canvas));
+    return PIXI.Texture.from(canvas);
   }
   
   private createBubbles(): void {
@@ -157,7 +157,7 @@ export class FishingGameEngineV8 {
       const speed = 0.5 + Math.random() * 1.5;
       const wobble = Math.random() * 2 - 1;
       
-      this.app.ticker.add(() => {
+      this.app.ticker.add((t: PIXI.Ticker) => {
         bubble.y -= speed;
         bubble.x += Math.sin(bubble.y * 0.01) * wobble;
         
@@ -173,7 +173,7 @@ export class FishingGameEngineV8 {
   
   private async createWaterEffect(): Promise<void> {
     // Create displacement map texture
-    const displacementTexture = await this.createDisplacementTexture();
+    const displacementTexture = this.createDisplacementTexture();
     
     // Create displacement sprite
     this.displacementSprite = new PIXI.Sprite(displacementTexture);
@@ -194,7 +194,7 @@ export class FishingGameEngineV8 {
     this.gameContainer.filters = [this.displacementFilter];
     
     // Create water overlay for caustics effect
-    const waterOverlayTexture = await this.createWaterOverlayTexture();
+    const waterOverlayTexture = this.createWaterOverlayTexture();
     this.waterOverlay = new PIXI.TilingSprite({
       texture: waterOverlayTexture,
       width: this.app.screen.width,
@@ -206,7 +206,7 @@ export class FishingGameEngineV8 {
     this.gameContainer.addChild(this.waterOverlay);
   }
   
-  private createDisplacementTexture(): Promise<PIXI.Texture> {
+  private createDisplacementTexture(): PIXI.Texture {
     const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -233,10 +233,10 @@ export class FishingGameEngineV8 {
     }
     
     ctx.putImageData(imageData, 0, 0);
-    return Promise.resolve(PIXI.Texture.from(canvas));
+    return PIXI.Texture.from(canvas);
   }
   
-  private createWaterOverlayTexture(): Promise<PIXI.Texture> {
+  private createWaterOverlayTexture(): PIXI.Texture {
     const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -257,7 +257,7 @@ export class FishingGameEngineV8 {
       ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     }
     
-    return Promise.resolve(PIXI.Texture.from(canvas));
+    return PIXI.Texture.from(canvas);
   }
   
   private createUI(): void {
@@ -388,7 +388,7 @@ export class FishingGameEngineV8 {
       .circle(0, -60, 15)
       .fill({ color: glowColor, alpha: 0.6 });
     
-          powerGlow.filters = [new PIXI.BlurFilter({ strength: 10 })];
+    powerGlow.filters = [new PIXI.BlurFilter({ strength: 10 })];
     
     this.cannon.addChild(base);
     this.cannon.addChild(barrel);
@@ -467,7 +467,7 @@ export class FishingGameEngineV8 {
     this.effectsContainer.addChild(flash);
     
     // Fade out
-    const fadeOut = () => {
+    const fadeOut = (t: PIXI.Ticker) => {
       flash.alpha -= 0.1;
       flash.scale.x += 0.1;
       flash.scale.y += 0.1;
@@ -481,7 +481,7 @@ export class FishingGameEngineV8 {
     PIXI.Ticker.shared.add(fadeOut);
   }
   
-  private createFishTexture(): Promise<PIXI.Texture> {
+  private createFishTexture(): PIXI.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = 100;
     canvas.height = 60;
@@ -512,11 +512,11 @@ export class FishingGameEngineV8 {
     ctx.arc(67, 25, 3, 0, Math.PI * 2);
     ctx.fill();
     
-    return Promise.resolve(PIXI.Texture.from(canvas));
+    return PIXI.Texture.from(canvas);
   }
   
   private async startFishSpawning(): Promise<void> {
-    const fishTexture = await this.createFishTexture();
+    const fishTexture = this.createFishTexture();
     
     // Spawn fish periodically
     setInterval(() => {
@@ -620,7 +620,7 @@ export class FishingGameEngineV8 {
     this.uiLayer.addChild(text);
     
     // Animate
-    const animate = () => {
+    const animate = (t: PIXI.Ticker) => {
       text.y -= 2;
       text.alpha -= 0.02;
       
@@ -649,7 +649,7 @@ export class FishingGameEngineV8 {
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
       
-      const animate = () => {
+      const animate = (t: PIXI.Ticker) => {
         particle.x += vx;
         particle.y += vy;
         particle.alpha -= 0.02;
@@ -747,7 +747,7 @@ export class FishingGameEngineV8 {
     ring.position.copyFrom(position);
     this.effectsContainer.addChild(ring);
     
-    const expand = () => {
+    const expand = (t: PIXI.Ticker) => {
       ring.scale.x += 0.1;
       ring.scale.y += 0.1;
       ring.alpha -= 0.05;
