@@ -368,6 +368,24 @@ export class NFTGalleryEngine {
     }
   }
 
+  private async createOceanBackground(): Promise<void> {
+    // Create gradient background using canvas
+    const gradientTexture = this.createGradientTexture(
+      [0x000814, 0x001a33, 0x003366],
+      this.app.screen.width,
+      this.app.screen.height
+    );
+    
+    const gradientSprite = new PIXI.Sprite(gradientTexture);
+    this.backgroundLayer.addChild(gradientSprite);
+    
+    // Create water displacement effect
+    await this.createWaterEffect();
+    
+    // Add ambient particles with ParticleContainer
+    this.createAmbientParticles();
+  }
+
   /**
    * Enhanced fish generation with new artistic properties
    */
