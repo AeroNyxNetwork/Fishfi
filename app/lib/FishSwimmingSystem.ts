@@ -104,7 +104,7 @@ class SwimmingFish extends PIXI.Container {
   private bubbleEmitter?: BubbleEmitter;
   private shadowSprite?: PIXI.Sprite;
   
-  constructor(config: FishConfig, path: PathConfig) {
+  constructor(config: FishConfig, path: PathConfig, private renderer?: PIXI.Renderer) {
     super();
     
     this.config = config;
@@ -112,9 +112,10 @@ class SwimmingFish extends PIXI.Container {
     
     // Create sprite (animated or static)
     if (config.animationFrames && config.animationFrames.length > 0) {
-      this.sprite = new PIXI.AnimatedSprite(config.animationFrames);
-      this.sprite.animationSpeed = 0.1 * config.speed;
-      this.sprite.play();
+      const animatedSprite = new PIXI.AnimatedSprite(config.animationFrames);
+      animatedSprite.animationSpeed = 0.1 * config.speed;
+      animatedSprite.play();
+      this.sprite = animatedSprite;
     } else {
       this.sprite = new PIXI.Sprite(config.texture);
     }
@@ -126,7 +127,9 @@ class SwimmingFish extends PIXI.Container {
     this.zIndex = config.layerDepth;
     
     // Add shadow for depth
-    this.createShadow();
+    if (this.renderer) {
+      this.createShadow();
+    }
     
     // Add to container
     this.addChild(this.sprite);
@@ -144,17 +147,21 @@ class SwimmingFish extends PIXI.Container {
    * Creates shadow effect for depth perception
    */
   private createShadow(): void {
+    if (!this.renderer) return;
+    
     const shadowGraphics = new PIXI.Graphics();
     shadowGraphics.ellipse(0, 0, 30 * this.config.size, 15 * this.config.size);
     shadowGraphics.fill({ color: 0x000000, alpha: 0.3 });
     
-    const shadowTexture = PIXI.Texture.from(shadowGraphics);
-    this.shadowSprite = new PIXI.Sprite(shadowTexture);
+    const texture = this.renderer.generateTexture(shadowGraphics);
+    
+    this.shadowSprite = new PIXI.Sprite(texture);
     this.shadowSprite.anchor.set(0.5);
     this.shadowSprite.position.y = 20 * this.config.size;
     this.shadowSprite.alpha = 0.5;
     
     this.addChildAt(this.shadowSprite, 0);
+    shadowGraphics.destroy();
   }
   
   /**
@@ -430,7 +437,7 @@ class FishFormation extends PIXI.Container {
   public pathProgress: number = 0;
   private currentPath: PathConfig;
   
-  constructor(config: FormationConfig) {
+  constructor(config: FormationConfig, private renderer?: PIXI.Renderer) {
     super();
     
     this.config = config;
@@ -450,7 +457,7 @@ class FishFormation extends PIXI.Container {
       const fishConfig = { ...this.config.fishConfig };
       fishConfig.id = `${fishConfig.id}-${index}`;
       
-      const fish = new SwimmingFish(fishConfig, this.currentPath);
+      const fish = new SwimmingFish(fishConfig, this.currentPath, this.renderer);
       fish.formation = this;
       fish.formationOffset = offset;
       
@@ -579,7 +586,8 @@ class BubbleEmitter {
     graphics.fill({ color: 0xffffff, alpha: 0.3 });
     graphics.stroke({ color: 0xffffff, width: 1, alpha: 0.5 });
     
-    this.bubbleTexture = PIXI.Texture.from(graphics);
+    // Use a simple white circle texture as fallback
+    this.bubbleTexture = PIXI.Texture.WHITE;
   }
   
   public update(deltaTime: number): void {
@@ -724,7 +732,7 @@ export class FishSwimmingSystem {
     const config = this.generateRandomFishConfig();
     const path = this.generateRandomPath();
     
-    const fish = new SwimmingFish(config, path);
+    const fish = new SwimmingFish(config, path, this.app.renderer);
     
     // Set initial position outside screen
     const startPoint = path.points[0];
@@ -746,7 +754,7 @@ export class FishSwimmingSystem {
       pathConfig: this.generateRandomPath()
     };
     
-    const formation = new FishFormation(formationConfig);
+    const formation = new FishFormation(formationConfig, this.app.renderer);
     
     this.container.addChild(formation);
     this.formations.push(formation);
@@ -788,7 +796,7 @@ export class FishSwimmingSystem {
       duration: 30000
     };
     
-    const bossFish = new SwimmingFish(bossConfig, path);
+    const bossFish = new SwimmingFish(bossConfig, path, this.app.renderer);
     
     // Add water ripple effect
     this.createWaterRipple(bossFish.position);
@@ -1107,7 +1115,7 @@ export class FishSwimmingSystem {
       ]
     };
     
-    const fish = new SwimmingFish(fishConfig, path);
+    const fish = new SwimmingFish(fishConfig, path, this.app.renderer);
     fish.position.copyFrom(position);
     
     this.container.addChild(fish);
