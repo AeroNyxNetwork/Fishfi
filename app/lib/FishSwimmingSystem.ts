@@ -164,12 +164,14 @@ export class FishSwimmingSystem {
       const progress = Math.min(elapsed / formation.duration, 1);
       
       // Update fish in this formation
-      formation.fish.forEach((fish, index) => {
-        if (!this.activeFish.has(fish.id)) {
+      formation.fish.forEach((activeFish, index) => {
+        if (!this.activeFish.has(activeFish.fish.id)) {
           // Fish was removed, clean up
           formation.fish.splice(index, 1);
           return;
         }
+        
+        const fish = activeFish.fish;
         
         // Calculate position based on formation type
         let targetX = fish.x;
@@ -196,9 +198,13 @@ export class FishSwimmingSystem {
             break;
         }
         
-        // Smooth movement towards target
-        fish.data.targetX = targetX;
-        fish.data.targetY = targetY;
+        // Update formation offset for smooth movement
+        if (!activeFish.formationOffset) {
+          activeFish.formationOffset = new PIXI.Point(0, 0);
+        }
+        
+        activeFish.formationOffset.x = targetX - activeFish.currentPosition.x;
+        activeFish.formationOffset.y = targetY - activeFish.currentPosition.y;
       });
       
       // Remove completed formations
@@ -235,7 +241,7 @@ export class FishSwimmingSystem {
   private specialFormations: Map<string, {
     id: string;
     type: 'circle' | 'spiral' | 'wave';
-    fish: FishEntity[];
+    fish: ActiveFish[];  // Changed from FishEntity[] to ActiveFish[]
     centerX: number;
     centerY: number;
     radius: number;
@@ -255,63 +261,90 @@ export class FishSwimmingSystem {
     }
   }
 
-  private updateSchoolFormations(): void {
-    // Group fish by species for schooling behavior
-    const schools = new Map<string, FishEntity[]>();
-    
-    this.activeFish.forEach(fish => {
-      if (!fish.data.behavior?.isLeader && fish.data.species) {
-        const species = fish.data.species;
-        if (!schools.has(species)) {
-          schools.set(species, []);
-        }
-        schools.get(species)!.push(fish);
-      }
-    });
-    
-    // Update each school
-    schools.forEach((schoolFish, species) => {
-      if (schoolFish.length < 3) return; // Need at least 3 fish for a school
-      
-      // Find the center of the school
-      let centerX = 0;
-      let centerY = 0;
-      schoolFish.forEach(fish => {
-        centerX += fish.x;
-        centerY += fish.y;
-      });
-      centerX /= schoolFish.length;
-      centerY /= schoolFish.length;
-      
-      // Apply cohesion and alignment forces
-      schoolFish.forEach(fish => {
-        // Cohesion - move towards center of school
-        const cohesionForce = 0.001;
-        const dx = centerX - fish.x;
-        const dy = centerY - fish.y;
-        
-        fish.data.velocityX += dx * cohesionForce;
-        fish.data.velocityY += dy * cohesionForce;
-        
-        // Separation - avoid getting too close to neighbors
-        schoolFish.forEach(other => {
-          if (other === fish) return;
-          
-          const distX = fish.x - other.x;
-          const distY = fish.y - other.y;
-          const dist = Math.sqrt(distX * distX + distY * distY);
-          
-          if (dist < 50 && dist > 0) {
-            const separationForce = 0.01 / dist;
-            fish.data.velocityX += distX * separationForce;
-            fish.data.velocityY += distY * separationForce;
-          }
-        });
-      });
-    });
-  }
+  // Replace the problematic type definitions with the correct ones
 
+// 1. Update the specialFormations property to use ActiveFish instead of FishEntity
+private specialFormations: Map<string, {
+  id: string;
+  type: 'circle' | 'spiral' | 'wave';
+  fish: ActiveFish[];  // Changed from FishEntity[] to ActiveFish[]
+  centerX: number;
+  centerY: number;
+  radius: number;
+  startTime: number;
+  duration: number;
+}> = new Map();
+
+// 2. Update the updateSchoolFormations method
+private updateSchoolFormations(): void {
+  // Group fish by species for schooling behavior
+  const schools = new Map<string, ActiveFish[]>();  // Changed from FishEntity[] to ActiveFish[]
   
+  this.activeFish.forEach(activeFish => {
+    // Access the behavior through the ActiveFish interface
+    if (!activeFish.isLeader && activeFish.fish.dna.species) {
+      const species = activeFish.fish.dna.species;
+      if (!schools.has(species)) {
+        schools.set(species, []);
+      }
+      schools.get(species)!.push(activeFish);
+    }
+  });
+  
+  // Update each school
+  schools.forEach((schoolFish, species) => {
+    if (schoolFish.length < 3) return; // Need at least 3 fish for a school
+    
+    // Find the center of the school
+    let centerX = 0;
+    let centerY = 0;
+    schoolFish.forEach(activeFish => {
+      centerX += activeFish.fish.x;
+      centerY += activeFish.fish.y;
+    });
+    centerX /= schoolFish.length;
+    centerY /= schoolFish.length;
+    
+    // Apply cohesion and alignment forces
+    schoolFish.forEach(activeFish => {
+      const fish = activeFish.fish;
+      
+      // Cohesion - move towards center of school
+      const cohesionForce = 0.001;
+      const dx = centerX - fish.x;
+      const dy = centerY - fish.y;
+      
+      // Since we're using path-based movement, we need to adjust the path or add offset
+      // We can add a formation offset
+      if (!activeFish.formationOffset) {
+        activeFish.formationOffset = new PIXI.Point(0, 0);
+      }
+      
+      activeFish.formationOffset.x += dx * cohesionForce;
+      activeFish.formationOffset.y += dy * cohesionForce;
+      
+      // Separation - avoid getting too close to neighbors
+      schoolFish.forEach(other => {
+        if (other === activeFish) return;
+        
+        const otherFish = other.fish;
+        const distX = fish.x - otherFish.x;
+        const distY = fish.y - otherFish.y;
+        const dist = Math.sqrt(distX * distX + distY * distY);
+        
+        if (dist < 50 && dist > 0) {
+          const separationForce = 0.01 / dist;
+          activeFish.formationOffset.x += distX * separationForce;
+          activeFish.formationOffset.y += distY * separationForce;
+        }
+      });
+    });
+  });
+}
+
+  private get bossFish(): ArtisticFishPixi | null {
+    return this.activeBoss?.fish || null;
+  }
 
   private updateFormations(): void {
     // Update boss formation if boss is active
@@ -329,11 +362,13 @@ export class FishSwimmingSystem {
   }
 
   private updateBossFormation(): void {
-    if (!this.bossFish || !this.bossActive) return;
+    if (!this.activeBoss || !this.bossActive) return;
+    
+    const bossFish = this.activeBoss.fish;
     
     // Get minions that should follow the boss
-    const minions = Array.from(this.activeFish.values()).filter(fish => 
-      fish.data.behavior?.followTarget === this.bossFish?.id
+    const minions = Array.from(this.activeFish.values()).filter(activeFish => 
+      activeFish.formation?.leader === this.activeBoss
     );
     
     // Update minion positions relative to boss
@@ -341,12 +376,16 @@ export class FishSwimmingSystem {
       const angle = (index / minions.length) * Math.PI * 2;
       const radius = 150 + Math.sin(Date.now() * 0.001 + index) * 30;
       
-      const targetX = this.bossFish!.x + Math.cos(angle) * radius;
-      const targetY = this.bossFish!.y + Math.sin(angle) * radius;
+      const targetX = bossFish.x + Math.cos(angle) * radius;
+      const targetY = bossFish.y + Math.sin(angle) * radius;
       
-      // Smooth movement towards formation position
-      minion.data.targetX = targetX;
-      minion.data.targetY = targetY;
+      // Update formation offset
+      if (!minion.formationOffset) {
+        minion.formationOffset = new PIXI.Point(0, 0);
+      }
+      
+      minion.formationOffset.x = targetX - minion.currentPosition.x;
+      minion.formationOffset.y = targetY - minion.currentPosition.y;
     });
   }
 
@@ -356,11 +395,12 @@ export class FishSwimmingSystem {
     const formationId = `formation_${Date.now()}`;
     
     // Get nearby fish for the formation
-    const nearbyFish = Array.from(this.activeFish.values()).filter(fish => {
+    const nearbyFish = Array.from(this.activeFish.values()).filter(activeFish => {
+      const fish = activeFish.fish;
       const dx = fish.x - centerX;
       const dy = fish.y - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      return dist < radius * 2 && !fish.data.behavior?.isLeader;
+      return dist < radius * 2 && !activeFish.isLeader;
     }).slice(0, 12); // Limit to 12 fish
     
     if (nearbyFish.length < 3) return; // Need at least 3 fish
@@ -376,7 +416,6 @@ export class FishSwimmingSystem {
       duration: 10000 // 10 seconds
     });
   }
-
   
   /**
    * Main update loop with optimizations
