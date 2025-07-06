@@ -369,15 +369,20 @@ export class NFTGalleryEngine {
   }
 
   private async createOceanBackground(): Promise<void> {
-    // Create gradient background using canvas
-    const gradientTexture = this.createGradientTexture(
-      [0x000814, 0x001a33, 0x003366],
-      this.app.screen.width,
-      this.app.screen.height
-    );
+    // Create gradient background using Graphics with FillGradient
+    const graphics = new PIXI.Graphics();
     
-    const gradientSprite = new PIXI.Sprite(gradientTexture);
-    this.backgroundLayer.addChild(gradientSprite);
+    // Create gradient fill
+    const gradient = new PIXI.FillGradient(0, 0, 0, this.app.screen.height);
+    gradient.addColorStop(0, 0x000814);
+    gradient.addColorStop(0.5, 0x001a33);
+    gradient.addColorStop(1, 0x003366);
+    
+    // Draw rectangle with gradient
+    graphics.rect(0, 0, this.app.screen.width, this.app.screen.height);
+    graphics.fill(gradient);
+    
+    this.backgroundLayer.addChild(graphics);
     
     // Create water displacement effect
     await this.createWaterEffect();
