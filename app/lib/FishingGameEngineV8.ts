@@ -177,7 +177,8 @@ export class FishingGameEngineV8 {
     
     // Create displacement sprite
     this.displacementSprite = new PIXI.Sprite(displacementTexture);
-    this.displacementSprite.texture.source.wrapMode = 'repeat';
+    // 修复：使用 addressMode 替代 wrapMode
+    this.displacementSprite.texture.source.addressMode = 'repeat';
     this.displacementSprite.scale.set(2);
     
     // Create displacement filter
