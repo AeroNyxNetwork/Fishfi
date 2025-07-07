@@ -282,7 +282,7 @@ export class NFTGalleryEngine {
         fill: 0x00ff00
       }
     });
-    fpsText.name = 'fps';
+    fpsText.label = 'fps'; // 使用 label 替代 name
     fpsText.position.set(10, 10);
     this.statsPanel.addChild(fpsText);
     
@@ -295,7 +295,7 @@ export class NFTGalleryEngine {
         fill: 0x00ffff
       }
     });
-    cacheText.name = 'cache';
+    cacheText.label = 'cache'; // 使用 label 替代 name
     cacheText.position.set(10, 30);
     this.statsPanel.addChild(cacheText);
     
@@ -308,7 +308,7 @@ export class NFTGalleryEngine {
         fill: 0xffff00
       }
     });
-    memoryText.name = 'memory';
+    memoryText.label = 'memory'; // 使用 label 替代 name
     memoryText.position.set(10, 50);
     this.statsPanel.addChild(memoryText);
     
@@ -352,9 +352,15 @@ export class NFTGalleryEngine {
   private updateStatsPanel(): void {
     if (!this.statsPanel || !this.statsPanel.visible) return;
     
-    const fpsText = this.statsPanel.getChildByName('fps') as PIXI.Text;
-    const cacheText = this.statsPanel.getChildByName('cache') as PIXI.Text;
-    const memoryText = this.statsPanel.getChildByName('memory') as PIXI.Text;
+    const fpsText = this.statsPanel.children.find(child => 
+      (child as any).label === 'fps'
+    ) as PIXI.Text;
+    const cacheText = this.statsPanel.children.find(child => 
+      (child as any).label === 'cache'
+    ) as PIXI.Text;
+    const memoryText = this.statsPanel.children.find(child => 
+      (child as any).label === 'memory'
+    ) as PIXI.Text;
     
     if (fpsText) {
       fpsText.text = `FPS: ${this.performanceStats.fps}`;
@@ -455,11 +461,12 @@ export class NFTGalleryEngine {
    * Creates water displacement effect
    */
   private async createWaterEffect(): Promise<void> {
-    // Create displacement texture using Canvas API
+  // Create displacement texture using Canvas API
     const displacementTexture = this.createNoiseTexture(256);
     
     this.displacementSprite = new PIXI.Sprite(displacementTexture);
-    this.displacementSprite.texture.source.wrapMode = 'repeat';
+    // 修复：使用 addressMode 替代 wrapMode
+    this.displacementSprite.texture.source.addressMode = 'repeat';
     this.displacementSprite.scale.set(2);
     
     this.displacementFilter = new PIXI.DisplacementFilter({
@@ -1240,7 +1247,7 @@ export class NFTGalleryEngine {
    */
   private showSwimmingUI(): void {
     const swimmingInfo = new PIXI.Container();
-    swimmingInfo.name = 'swimmingInfo';
+    swimmingInfo.label = 'swimmingInfo'; // 使用 label
     
     const bg = new PIXI.Graphics();
     bg.roundRect(0, 0, 280, 120, 15);
@@ -1269,7 +1276,7 @@ export class NFTGalleryEngine {
         fill: 0xffffff
       }
     });
-    fishCount.name = 'fishCount';
+    fishCount.label = 'fishCount'; // 使用 label
     fishCount.position.set(20, 50);
     swimmingInfo.addChild(fishCount);
     
@@ -1281,7 +1288,7 @@ export class NFTGalleryEngine {
         fill: 0xffd700
       }
     });
-    bossStatus.name = 'bossStatus';
+    bossStatus.label = 'bossStatus'; // 使用 label
     bossStatus.position.set(20, 80);
     swimmingInfo.addChild(bossStatus);
     
@@ -1293,7 +1300,9 @@ export class NFTGalleryEngine {
    * Hides swimming mode UI
    */
   private hideSwimmingUI(): void {
-    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo');
+    const swimmingInfo = this.uiLayer.children.find(child => 
+      (child as any).label === 'swimmingInfo'
+    );
     if (swimmingInfo) {
       this.uiLayer.removeChild(swimmingInfo);
       swimmingInfo.destroy({ children: true });
@@ -1306,11 +1315,17 @@ export class NFTGalleryEngine {
   private updateSwimmingUI(): void {
     if (!this.swimmingSystem || !this.isSwimmingMode) return;
     
-    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo') as PIXI.Container;
+    const swimmingInfo = this.uiLayer.children.find(child => 
+      (child as any).label === 'swimmingInfo'
+    ) as PIXI.Container;
     if (!swimmingInfo) return;
     
-    const fishCount = swimmingInfo.getChildByName('fishCount') as PIXI.Text;
-    const bossStatus = swimmingInfo.getChildByName('bossStatus') as PIXI.Text;
+    const fishCount = swimmingInfo.children.find(child => 
+      (child as any).label === 'fishCount'
+    ) as PIXI.Text;
+    const bossStatus = swimmingInfo.children.find(child => 
+      (child as any).label === 'bossStatus'
+    ) as PIXI.Text;
     
     if (fishCount) {
       fishCount.text = `Active Entities: ${this.swimmingSystem.getActiveFishCount()}`;
@@ -1428,7 +1443,7 @@ export class NFTGalleryEngine {
     this.aquarium.visible = false;
     
     const galleryContainer = new PIXI.Container();
-    galleryContainer.name = 'gallery';
+    galleryContainer.label = 'gallery'; // 使用 label
     
     // Create a smaller gallery panel instead of full screen
     const panelWidth = Math.min(800, this.app.screen.width - 100);
@@ -1606,7 +1621,9 @@ export class NFTGalleryEngine {
    * Hides gallery
    */
   private hideGallery(): void {
-    const gallery = this.uiLayer.getChildByName('gallery');
+    const gallery = this.uiLayer.children.find(child => 
+      (child as any).label === 'gallery'
+    );
     if (gallery) {
       this.uiLayer.removeChild(gallery);
       gallery.destroy({ children: true });
@@ -1675,7 +1692,9 @@ export class NFTGalleryEngine {
     }
     
     // Update swimming UI position
-    const swimmingInfo = this.uiLayer.getChildByName('swimmingInfo');
+    const swimmingInfo = this.uiLayer.children.find(child => 
+      (child as any).label === 'swimmingInfo'
+    );
     if (swimmingInfo) {
       swimmingInfo.position.set(window.innerWidth - 320, 50);
     }
