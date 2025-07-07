@@ -99,7 +99,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   private patternSprite?: PIXI.Sprite;
   private overlaySprite?: PIXI.Sprite;
   private glowContainer?: PIXI.Container;
-  private particleContainer?: PIXI.ParticleContainer; // Changed to ParticleContainer
+  private particleContainer?: PIXI.Container; // Changed to ParticleContainer
   
   private shaderTime: number = 0;
   private colorMatrixFilter?: PIXI.ColorMatrixFilter;
@@ -121,7 +121,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   private app: PIXI.Application;
   
   // Store particles separately for v8 ParticleContainer
-  private particles: PIXI.Particle[] = [];
+  private particles: PIXI.Sprite[] = [];
   
   constructor(dna: FishDNA, app: PIXI.Application) {
     super();
@@ -1473,29 +1473,20 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Create particle texture
     const particleTexture = this.createParticleTexture();
     
-    // Use ParticleContainer for better performance - PIXI v8 syntax
-    // Looking at the docs, ParticleContainer doesn't have a maxSize property
-    // The container will automatically grow as needed
-    this.particleContainer = new PIXI.ParticleContainer({
-      texture: particleTexture,
-      // Use the correct property name from v8 docs
-      dynamicProperties: {
-        position: true,    // Dynamic position updates
-        rotation: false,   // Static rotation
-        scale: true,       // Dynamic scale
-        alpha: true,       // Dynamic alpha
-        tint: true        // Dynamic tint
-      }
-    });
+    // Use regular Container for particles
+    // This is more compatible and still performant for reasonable particle counts
+    this.particleContainer = new PIXI.Container();
     
     this.addChild(this.particleContainer);
+    
+    // Store particles array for easier management
+    this.particles = [];
     
     // Create particles
     for (let i = 0; i < particleCount; i++) {
       this.createParticle(i, particleTexture);
     }
   }
-
   /**
    * Creates particle texture
    */
@@ -1521,6 +1512,7 @@ export class ArtisticFishPixi extends PIXI.Container {
   private createParticle(index: number, texture: PIXI.Texture): void {
     const particle = new PIXI.Sprite(texture);
     
+    
     // Set initial position
     const angle = (index / 10) * Math.PI * 2;
     const distance = 50 + Math.random() * 50;
@@ -1542,6 +1534,7 @@ export class ArtisticFishPixi extends PIXI.Container {
     (particle as any).bobOffset = Math.random() * Math.PI * 2;
     
     this.particleContainer!.addChild(particle);
+    this.particles.push(particle);
   }
 
   /**
@@ -1693,8 +1686,8 @@ export class ArtisticFishPixi extends PIXI.Container {
     }
     
     // Update particles
-    if (this.particleContainer) {
-      this.particleContainer.children.forEach((particle: any) => {
+    if (this.particleContainer && this.particles.length > 0) {
+      this.particles.forEach((particle: any) => {
         // Orbital motion
         particle.orbitAngle += particle.orbitSpeed * deltaTime;
         particle.x = Math.cos(particle.orbitAngle) * particle.orbitRadius;
@@ -1800,7 +1793,7 @@ export class ArtisticFishPixi extends PIXI.Container {
     // Speed up particles
     if (this.particleContainer) {
       this.particleContainer.children.forEach((particle: any) => {
-        particle.orbitSpeed *= 2;
+        particle.orbitSpeed /= 2;
       });
     }
     
